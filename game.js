@@ -147,8 +147,8 @@ class FantaGame {
         this.lastTiltTime = now;
 
         const normalizedRotation = ((this.rotation % 360) + 360) % 360;
-        // Update target zone to match the blue arc position (45 degrees offset)
-        const isInTargetZone = normalizedRotation >= 45 && normalizedRotation <= 90;
+        // Update target zone to match the smaller blue arc at the top (11.25 degrees on each side of 0)
+        const isInTargetZone = normalizedRotation >= 348.75 || normalizedRotation <= 11.25;
 
         if (isInTargetZone) {
             this.hits++;
