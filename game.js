@@ -7,7 +7,9 @@ class FantaGame {
         this.messageElement = document.getElementById('message');
         
         this.rotation = 0;
-        this.speed = 4; // Much faster rotation speed
+        this.canRotation = 0;
+        this.wheelSpeed = 4; // Wheel rotation speed
+        this.canSpeed = 2; // Can's own rotation speed
         this.lives = 3;
         this.drinks = 0;
         this.isGameOver = false;
@@ -199,9 +201,14 @@ class FantaGame {
 
     gameLoop() {
         if (!this.isGameOver) {
-            this.rotation = (this.rotation + this.speed) % 360;
+            // Update wheel rotation
+            this.rotation = (this.rotation + this.wheelSpeed) % 360;
             this.wheel.style.transform = `rotate(${this.rotation}deg)`;
-            this.can.style.transform = `translate(-50%, -50%) rotate(${-this.rotation}deg)`;
+            
+            // Update can rotation - combines wheel rotation and continuous spinning
+            this.canRotation = (this.canRotation + this.canSpeed) % 360;
+            const totalRotation = -this.rotation + this.canRotation;
+            this.can.style.transform = `translate(-50%, -50%) rotate(${totalRotation}deg)`;
         }
         requestAnimationFrame(() => this.gameLoop());
     }
