@@ -8,7 +8,7 @@ class FantaGame {
         this.targetZone = document.getElementById('targetZone');
         
         this.rotation = 0;
-        this.speed = 2; // Fast rotation speed
+        this.speed = 6; // Fast rotation speed
         this.lives = 5;
         this.hits = 0;
         this.isGameOver = false;
