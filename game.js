@@ -1,20 +1,18 @@
 class FantaGame {
     constructor() {
-        this.wheel = document.getElementById('wheel');
         this.can = document.getElementById('can');
+        this.beam = document.getElementById('beam');
         this.livesElement = document.getElementById('lives');
-        this.drinksElement = document.getElementById('drinks');
+        this.hitsElement = document.getElementById('hits');
         this.messageElement = document.getElementById('message');
         
         this.rotation = 0;
-        this.canRotation = 0;
-        this.wheelSpeed = 4; // Wheel rotation speed
-        this.canSpeed = 2; // Can's own rotation speed
-        this.lives = 3;
-        this.drinks = 0;
+        this.speed = 6; // Fast rotation speed
+        this.lives = 5;
+        this.hits = 0;
         this.isGameOver = false;
         this.lastTiltTime = 0;
-        this.tiltCooldown = 800; // Shorter cooldown for faster gameplay
+        this.tiltCooldown = 500; // Quick cooldown for harder gameplay
         this.isFirstClick = true;
         this.baseOrientation = null;
         
@@ -24,7 +22,7 @@ class FantaGame {
     setupGame() {
         this.showMessage(
             'Welcome to Fanta Spin!',
-            'Hold your phone in a comfortable position and tap anywhere to start.<br><br>Tilt your phone forward to drink when the can is in the white zone!',
+            'Hold your phone in a comfortable position and tap anywhere to start.<br><br>Tilt your phone forward when the beam hits the target!',
             false
         );
 
@@ -60,7 +58,6 @@ class FantaGame {
     }
 
     startGame() {
-        // Set initial orientation after a short delay to let user position phone
         setTimeout(() => {
             window.addEventListener('deviceorientation', (e) => {
                 if (this.baseOrientation === null) {
@@ -89,13 +86,11 @@ class FantaGame {
         const currentBeta = event.beta || 0;
         const deltaBeta = currentBeta - this.baseOrientation.beta;
         
-        // Only detect forward tilt (positive change in beta)
         const tiltThreshold = 20;
         if (deltaBeta > tiltThreshold) {
             this.lastTiltTime = now;
-            this.checkDrinkingPosition();
+            this.checkBeamPosition();
             
-            // Reset base orientation after each tilt
             this.baseOrientation = {
                 beta: currentBeta,
                 gamma: event.gamma || 0
@@ -103,25 +98,26 @@ class FantaGame {
         }
     }
 
-    checkDrinkingPosition() {
+    checkBeamPosition() {
+        // The target zone is at the top (between 350 and 10 degrees for a narrower window)
         const normalizedRotation = ((this.rotation % 360) + 360) % 360;
-        const isInDrinkingZone = normalizedRotation > 345 || normalizedRotation < 15;
+        const isInTargetZone = normalizedRotation > 350 || normalizedRotation < 10;
 
-        if (isInDrinkingZone) {
-            this.drinks++;
-            this.drinksElement.textContent = this.drinks;
+        if (isInTargetZone) {
+            this.hits++;
+            this.hitsElement.textContent = this.hits;
             
             // Success feedback
-            this.wheel.style.borderColor = 'rgba(0, 255, 0, 0.5)';
+            this.beam.style.backgroundColor = '#00FF00';
             setTimeout(() => {
-                this.wheel.style.borderColor = 'rgba(255, 255, 255, 0.3)';
+                this.beam.style.background = 'linear-gradient(to top, rgba(255, 255, 255, 0.8), rgba(255, 255, 255, 0.2))';
             }, 300);
             
             if ('vibrate' in navigator) {
                 navigator.vibrate([100, 50, 100]);
             }
             
-            if (this.drinks >= 5) {
+            if (this.hits >= 5) {
                 this.gameOver(true);
             }
         } else {
@@ -129,9 +125,9 @@ class FantaGame {
             this.livesElement.textContent = this.lives;
             
             // Failure feedback
-            this.wheel.style.borderColor = 'rgba(255, 0, 0, 0.5)';
+            this.beam.style.backgroundColor = '#FF0000';
             setTimeout(() => {
-                this.wheel.style.borderColor = 'rgba(255, 255, 255, 0.3)';
+                this.beam.style.background = 'linear-gradient(to top, rgba(255, 255, 255, 0.8), rgba(255, 255, 255, 0.2))';
             }, 300);
             
             if ('vibrate' in navigator) {
@@ -175,13 +171,10 @@ class FantaGame {
     gameOver(isWinner) {
         this.isGameOver = true;
         
-        // Stop the wheel rotation
-        this.wheel.style.transition = 'transform 0.5s ease-out';
-        
         if (isWinner) {
             this.showMessage(
                 '🎉 Congratulations! 🎉',
-                'You\'ve successfully drunk 5 Fantas!<br><br>Your code is: <strong>winner</strong>',
+                'You\'ve successfully hit the target 5 times!<br><br>Your code is: <strong>winner</strong>',
                 true
             );
             if ('vibrate' in navigator) {
@@ -190,7 +183,7 @@ class FantaGame {
         } else {
             this.showMessage(
                 'Game Over',
-                'You ran out of lives!<br>Remember to tilt only when the can is in the white zone.',
+                'You ran out of lives!<br>Remember to tilt only when the beam hits the target!',
                 true
             );
             if ('vibrate' in navigator) {
@@ -201,14 +194,11 @@ class FantaGame {
 
     gameLoop() {
         if (!this.isGameOver) {
-            // Update wheel rotation
-            this.rotation = (this.rotation + this.wheelSpeed) % 360;
-            this.wheel.style.transform = `rotate(${this.rotation}deg)`;
+            this.rotation = (this.rotation + this.speed) % 360;
             
-            // Update can rotation - combines wheel rotation and continuous spinning
-            this.canRotation = (this.canRotation + this.canSpeed) % 360;
-            const totalRotation = -this.rotation + this.canRotation;
-            this.can.style.transform = `translate(-50%, -50%) rotate(${totalRotation}deg)`;
+            // Rotate both can and beam
+            this.can.style.transform = `rotate(${this.rotation}deg)`;
+            this.beam.style.transform = `translateX(-50%) rotate(${this.rotation}deg)`;
         }
         requestAnimationFrame(() => this.gameLoop());
     }
