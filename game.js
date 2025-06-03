@@ -9,7 +9,7 @@ class FantaGame {
         
         this.rotation = 0;
         this.speed = 6; // Fast rotation speed
-        this.lives = 2;
+        this.lives = 5;
         this.hits = 0;
         this.isGameOver = false;
         this.lastTiltTime = 0;
