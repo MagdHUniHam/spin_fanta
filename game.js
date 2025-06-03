@@ -144,8 +144,8 @@ class FantaGame {
         if (this.isGameOver) return;
         
         const normalizedRotation = ((this.rotation % 360) + 360) % 360;
-        // Hit zone at the top (45 degrees total, centered at top)
-        const isInTargetZone = normalizedRotation >= 337.5 || normalizedRotation <= 22.5;
+        // Hit zone at the top (90 degrees total, centered at top)
+        const isInTargetZone = normalizedRotation >= 315 || normalizedRotation <= 45;
 
         if (isInTargetZone) {
             this.hits++;
