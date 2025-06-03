@@ -93,17 +93,20 @@ class FantaGame {
 
     startGame() {
         if (!this.useFallback) {
-            setTimeout(() => {
-                window.addEventListener('deviceorientation', (e) => {
-                    if (this.baseOrientation === null) {
-                        this.baseOrientation = {
-                            beta: e.beta || 0,
-                            gamma: e.gamma || 0
-                        };
-                    }
-                    this.handleTilt(e);
-                });
-            }, 500);
+            // Remove the setTimeout to start detecting tilts immediately
+            window.addEventListener('deviceorientation', (e) => {
+                if (this.baseOrientation === null) {
+                    this.baseOrientation = {
+                        beta: e.beta || 0,
+                        gamma: e.gamma || 0
+                    };
+                    return; // Skip the first reading to establish baseline
+                }
+                this.handleTilt(e);
+            });
+
+            // Add debug logging
+            console.log('Device orientation enabled');
         }
 
         this.gameLoop();
@@ -120,21 +123,19 @@ class FantaGame {
         if (now - this.lastTiltTime < this.tiltCooldown) return;
 
         const currentBeta = event.beta || 0;
-        const currentGamma = event.gamma || 0;
         
-        // Calculate total tilt using both beta and gamma
-        const deltaBeta = Math.abs(currentBeta - this.baseOrientation.beta);
-        const deltaGamma = Math.abs(currentGamma - this.baseOrientation.gamma);
-        const totalTilt = Math.sqrt(deltaBeta * deltaBeta + deltaGamma * deltaGamma);
+        // Only check forward tilt (beta) - like drinking motion
+        const deltaBeta = currentBeta - this.baseOrientation.beta;
         
-        if (totalTilt > this.tiltThreshold) {
+        // Detect forward tilt motion (positive delta means tilting forward)
+        if (deltaBeta > 15) {  // Threshold for forward tilt
             this.lastTiltTime = now;
             this.checkBeamPosition();
             
-            // Update base orientation gradually for smoother detection
+            // Update base orientation
             this.baseOrientation = {
-                beta: this.baseOrientation.beta * 0.3 + currentBeta * 0.7,
-                gamma: this.baseOrientation.gamma * 0.3 + currentGamma * 0.7
+                beta: currentBeta,
+                gamma: event.gamma || 0
             };
         }
     }
@@ -142,19 +143,14 @@ class FantaGame {
     checkBeamPosition() {
         if (this.isGameOver) return;
         
-        const now = Date.now();
-        if (now - this.lastTiltTime < this.tiltCooldown) return;
-        this.lastTiltTime = now;
-
         const normalizedRotation = ((this.rotation % 360) + 360) % 360;
-        // Update target zone to match the smaller blue arc at the top (11.25 degrees on each side of 0)
-        const isInTargetZone = normalizedRotation >= 348.75 || normalizedRotation <= 11.25;
+        // Hit zone at the top (45 degrees total, centered at top)
+        const isInTargetZone = normalizedRotation >= 337.5 || normalizedRotation <= 22.5;
 
         if (isInTargetZone) {
             this.hits++;
             this.hitsElement.textContent = this.hits;
             
-            // Flash the beam green for success
             this.beam.style.backgroundColor = '#00FF00';
             setTimeout(() => {
                 this.beam.style.background = 'linear-gradient(to top, rgba(255, 255, 255, 0.8), rgba(255, 255, 255, 0.2))';
@@ -171,7 +167,6 @@ class FantaGame {
             this.lives--;
             this.livesElement.textContent = this.lives;
             
-            // Flash the beam red for failure
             this.beam.style.backgroundColor = '#FF0000';
             setTimeout(() => {
                 this.beam.style.background = 'linear-gradient(to top, rgba(255, 255, 255, 0.8), rgba(255, 255, 255, 0.2))';
