@@ -13,7 +13,7 @@ class FantaGame {
         this.hits = 0;
         this.isGameOver = false;
         this.lastTiltTime = 0;
-        this.tiltCooldown = 300; // Reduced from 500 to 300ms for better responsiveness
+        this.tiltCooldown = 200; // Reduced from 500 to 300ms for better responsiveness
         this.isFirstClick = true;
         this.baseOrientation = null;
         this.useFallback = false;
