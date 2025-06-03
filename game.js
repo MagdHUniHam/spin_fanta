@@ -1,0 +1,198 @@
+class FantaGame {
+    constructor() {
+        this.wheel = document.getElementById('wheel');
+        this.can = document.getElementById('can');
+        this.livesElement = document.getElementById('lives');
+        this.drinksElement = document.getElementById('drinks');
+        this.messageElement = document.getElementById('message');
+        
+        this.rotation = 0;
+        this.speed = 1.5; // Slightly slower for better playability
+        this.lives = 3;
+        this.drinks = 0;
+        this.isGameOver = false;
+        this.lastTiltTime = 0;
+        this.tiltCooldown = 1200; // Slightly longer cooldown for better control
+        this.isFirstClick = true;
+        
+        this.setupGame();
+    }
+
+    setupGame() {
+        // Show initial message
+        this.showMessage(
+            'Welcome to Fanta Spin!',
+            'Tap anywhere to start the game and enable tilt controls.',
+            false
+        );
+
+        document.body.addEventListener('click', () => this.handleFirstClick(), { once: true });
+    }
+
+    async handleFirstClick() {
+        this.messageElement.style.display = 'none';
+        
+        try {
+            // Request device orientation permission on iOS
+            if (typeof DeviceOrientationEvent !== 'undefined' && 
+                typeof DeviceOrientationEvent.requestPermission === 'function') {
+                const permission = await DeviceOrientationEvent.requestPermission();
+                if (permission === 'granted') {
+                    this.startGame();
+                } else {
+                    this.showMessage(
+                        'Permission Denied',
+                        'Please allow motion sensors to play the game.',
+                        true
+                    );
+                }
+            } else {
+                // Non-iOS devices
+                this.startGame();
+            }
+        } catch (error) {
+            this.showMessage(
+                'Error',
+                'Could not access motion sensors. Please try again.',
+                true
+            );
+        }
+    }
+
+    startGame() {
+        window.addEventListener('deviceorientation', (e) => this.handleTilt(e));
+        this.gameLoop();
+        
+        // Add vibration feedback if available
+        if ('vibrate' in navigator) {
+            navigator.vibrate(200);
+        }
+    }
+
+    handleTilt(event) {
+        if (this.isGameOver) return;
+        
+        const now = Date.now();
+        if (now - this.lastTiltTime < this.tiltCooldown) return;
+
+        const tiltThreshold = 25; // Increased threshold for better control
+        const gamma = event.gamma || 0; // Left/Right tilt
+        const beta = event.beta || 0;   // Front/Back tilt
+
+        if (Math.abs(gamma) > tiltThreshold || Math.abs(beta) > tiltThreshold) {
+            this.lastTiltTime = now;
+            this.checkDrinkingPosition();
+        }
+    }
+
+    checkDrinkingPosition() {
+        // The drinking zone is at the top (between 345 and 15 degrees)
+        const normalizedRotation = ((this.rotation % 360) + 360) % 360;
+        const isInDrinkingZone = normalizedRotation > 345 || normalizedRotation < 15;
+
+        if (isInDrinkingZone) {
+            this.drinks++;
+            this.drinksElement.textContent = this.drinks;
+            
+            // Success feedback
+            this.wheel.style.borderColor = 'rgba(0, 255, 0, 0.5)';
+            setTimeout(() => {
+                this.wheel.style.borderColor = 'rgba(255, 255, 255, 0.3)';
+            }, 300);
+            
+            if ('vibrate' in navigator) {
+                navigator.vibrate([100, 50, 100]);
+            }
+            
+            if (this.drinks >= 5) {
+                this.gameOver(true);
+            }
+        } else {
+            this.lives--;
+            this.livesElement.textContent = this.lives;
+            
+            // Failure feedback
+            this.wheel.style.borderColor = 'rgba(255, 0, 0, 0.5)';
+            setTimeout(() => {
+                this.wheel.style.borderColor = 'rgba(255, 255, 255, 0.3)';
+            }, 300);
+            
+            if ('vibrate' in navigator) {
+                navigator.vibrate(500);
+            }
+            
+            if (this.lives <= 0) {
+                this.gameOver(false);
+            }
+        }
+    }
+
+    showMessage(title, text, showReload = false) {
+        this.messageElement.style.display = 'block';
+        let buttonStyle = `
+            style="
+                background-color: #FF4500;
+                border: none;
+                color: white;
+                padding: 15px 30px;
+                border-radius: 25px;
+                font-size: 18px;
+                margin-top: 20px;
+                cursor: pointer;
+                box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+                transition: transform 0.2s;
+            "
+            onmouseover="this.style.transform='scale(1.05)'"
+            onmouseout="this.style.transform='scale(1)'"
+        `;
+        
+        this.messageElement.innerHTML = `
+            <h2 style="color: ${title.includes('Game Over') ? '#FF4500' : 'white'}; 
+                       font-size: ${title.includes('Game Over') ? '32px' : '24px'};
+                       margin-bottom: 20px;">${title}</h2>
+            <p style="font-size: 18px; line-height: 1.5;">${text}</p>
+            ${showReload ? `<button onclick="location.reload()" ${buttonStyle}>Try Again</button>` : ''}
+        `;
+    }
+
+    gameOver(isWinner) {
+        this.isGameOver = true;
+        
+        // Stop the wheel rotation
+        this.wheel.style.transition = 'transform 0.5s ease-out';
+        
+        if (isWinner) {
+            this.showMessage(
+                '🎉 Congratulations! 🎉',
+                'You\'ve successfully drunk 5 Fantas!<br><br>Your code is: <strong>winner</strong>',
+                true
+            );
+            if ('vibrate' in navigator) {
+                navigator.vibrate([100, 50, 100, 50, 200]);
+            }
+        } else {
+            this.showMessage(
+                'Game Over',
+                'You ran out of lives!<br>Remember to tilt only when the can is in the white zone.',
+                true
+            );
+            if ('vibrate' in navigator) {
+                navigator.vibrate([500, 100, 500]);
+            }
+        }
+    }
+
+    gameLoop() {
+        if (!this.isGameOver) {
+            this.rotation = (this.rotation + this.speed) % 360;
+            this.wheel.style.transform = `rotate(${this.rotation}deg)`;
+            this.can.style.transform = `translate(-50%, -50%) rotate(${-this.rotation}deg)`;
+        }
+        requestAnimationFrame(() => this.gameLoop());
+    }
+}
+
+// Start the game when the page loads
+window.addEventListener('load', () => {
+    new FantaGame();
+}); 
