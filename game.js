@@ -1,10 +1,11 @@
 class FantaGame {
     constructor() {
-        this.can = document.getElementById('can');
+        this.canContainer = document.getElementById('canContainer');
         this.beam = document.getElementById('beam');
         this.livesElement = document.getElementById('lives');
         this.hitsElement = document.getElementById('hits');
         this.messageElement = document.getElementById('message');
+        this.targetZone = document.getElementById('targetZone');
         
         this.rotation = 0;
         this.speed = 6; // Fast rotation speed
@@ -147,8 +148,10 @@ class FantaGame {
             this.hitsElement.textContent = this.hits;
             
             this.beam.style.backgroundColor = '#00FF00';
+            this.targetZone.style.backgroundColor = 'rgba(0, 255, 0, 0.8)';
             setTimeout(() => {
                 this.beam.style.background = 'linear-gradient(to top, rgba(255, 255, 255, 0.8), rgba(255, 255, 255, 0.2))';
+                this.targetZone.style.backgroundColor = 'rgba(255, 255, 255, 0.5)';
             }, 300);
             
             if ('vibrate' in navigator) {
@@ -163,8 +166,10 @@ class FantaGame {
             this.livesElement.textContent = this.lives;
             
             this.beam.style.backgroundColor = '#FF0000';
+            this.targetZone.style.backgroundColor = 'rgba(255, 0, 0, 0.8)';
             setTimeout(() => {
                 this.beam.style.background = 'linear-gradient(to top, rgba(255, 255, 255, 0.8), rgba(255, 255, 255, 0.2))';
+                this.targetZone.style.backgroundColor = 'rgba(255, 255, 255, 0.5)';
             }, 300);
             
             if ('vibrate' in navigator) {
@@ -232,9 +237,7 @@ class FantaGame {
     gameLoop() {
         if (!this.isGameOver) {
             this.rotation = (this.rotation + this.speed) % 360;
-            
-            this.can.style.transform = `rotate(${this.rotation}deg)`;
-            this.beam.style.transform = `translateX(-50%) rotate(${this.rotation}deg)`;
+            this.canContainer.style.transform = `translate(-50%, -50%) rotate(${this.rotation}deg)`;
         }
         requestAnimationFrame(() => this.gameLoop());
     }
