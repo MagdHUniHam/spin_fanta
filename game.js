@@ -13,7 +13,7 @@ class FantaGame {
         this.hits = 0;
         this.isGameOver = false;
         this.lastTiltTime = 0;
-        this.tiltCooldown = 300; // Reduced from 500 to 300ms for better responsiveness
+        this.tiltCooldown = 200; // Reduced from 300ms to 200ms for quicker response
         this.isFirstClick = true;
         this.baseOrientation = null;
         this.useFallback = false;
@@ -93,20 +93,16 @@ class FantaGame {
 
     startGame() {
         if (!this.useFallback) {
-            // Remove the setTimeout to start detecting tilts immediately
             window.addEventListener('deviceorientation', (e) => {
                 if (this.baseOrientation === null) {
                     this.baseOrientation = {
                         beta: e.beta || 0,
                         gamma: e.gamma || 0
                     };
-                    return; // Skip the first reading to establish baseline
+                    return;
                 }
                 this.handleTilt(e);
-            });
-
-            // Add debug logging
-            console.log('Device orientation enabled');
+            }, { frequency: 60 }); // Add higher frequency updates
         }
 
         this.gameLoop();
@@ -127,14 +123,14 @@ class FantaGame {
         // Only check forward tilt (beta) - like drinking motion
         const deltaBeta = currentBeta - this.baseOrientation.beta;
         
-        // Detect forward tilt motion (positive delta means tilting forward)
-        if (deltaBeta > 10) {  // Reduced from 15 to 10 degrees for easier tilting
+        // More sensitive tilt detection
+        if (deltaBeta > 5) {  // Reduced from 10 to 5 degrees for much easier tilting
             this.lastTiltTime = now;
             this.checkBeamPosition();
             
-            // Update base orientation
+            // Gradually update base orientation for smoother detection
             this.baseOrientation = {
-                beta: currentBeta,
+                beta: this.baseOrientation.beta * 0.7 + currentBeta * 0.3, // Smooth transition
                 gamma: event.gamma || 0
             };
         }
