@@ -9,14 +9,15 @@ class FantaGame {
         
         this.rotation = 0;
         this.speed = 6; // Fast rotation speed
-        this.lives = 5;
+        this.lives = 2;
         this.hits = 0;
         this.isGameOver = false;
         this.lastTiltTime = 0;
-        this.tiltCooldown = 500; // Quick cooldown for harder gameplay
+        this.tiltCooldown = 300; // Reduced from 500 to 300ms for better responsiveness
         this.isFirstClick = true;
         this.baseOrientation = null;
         this.useFallback = false;
+        this.tiltThreshold = 15; // New variable for tilt sensitivity
         
         this.setupGame();
     }
@@ -119,16 +120,21 @@ class FantaGame {
         if (now - this.lastTiltTime < this.tiltCooldown) return;
 
         const currentBeta = event.beta || 0;
-        const deltaBeta = currentBeta - this.baseOrientation.beta;
+        const currentGamma = event.gamma || 0;
         
-        const tiltThreshold = 20;
-        if (deltaBeta > tiltThreshold) {
+        // Calculate total tilt using both beta and gamma
+        const deltaBeta = Math.abs(currentBeta - this.baseOrientation.beta);
+        const deltaGamma = Math.abs(currentGamma - this.baseOrientation.gamma);
+        const totalTilt = Math.sqrt(deltaBeta * deltaBeta + deltaGamma * deltaGamma);
+        
+        if (totalTilt > this.tiltThreshold) {
             this.lastTiltTime = now;
             this.checkBeamPosition();
             
+            // Update base orientation gradually for smoother detection
             this.baseOrientation = {
-                beta: currentBeta,
-                gamma: event.gamma || 0
+                beta: this.baseOrientation.beta * 0.3 + currentBeta * 0.7,
+                gamma: this.baseOrientation.gamma * 0.3 + currentGamma * 0.7
             };
         }
     }
@@ -141,17 +147,17 @@ class FantaGame {
         this.lastTiltTime = now;
 
         const normalizedRotation = ((this.rotation % 360) + 360) % 360;
-        const isInTargetZone = normalizedRotation > 350 || normalizedRotation < 10;
+        // Update target zone to match the blue arc position (45 degrees offset)
+        const isInTargetZone = normalizedRotation >= 45 && normalizedRotation <= 90;
 
         if (isInTargetZone) {
             this.hits++;
             this.hitsElement.textContent = this.hits;
             
+            // Flash the beam green for success
             this.beam.style.backgroundColor = '#00FF00';
-            this.targetZone.style.backgroundColor = 'rgba(0, 255, 0, 0.8)';
             setTimeout(() => {
                 this.beam.style.background = 'linear-gradient(to top, rgba(255, 255, 255, 0.8), rgba(255, 255, 255, 0.2))';
-                this.targetZone.style.backgroundColor = 'rgba(255, 255, 255, 0.5)';
             }, 300);
             
             if ('vibrate' in navigator) {
@@ -165,11 +171,10 @@ class FantaGame {
             this.lives--;
             this.livesElement.textContent = this.lives;
             
+            // Flash the beam red for failure
             this.beam.style.backgroundColor = '#FF0000';
-            this.targetZone.style.backgroundColor = 'rgba(255, 0, 0, 0.8)';
             setTimeout(() => {
                 this.beam.style.background = 'linear-gradient(to top, rgba(255, 255, 255, 0.8), rgba(255, 255, 255, 0.2))';
-                this.targetZone.style.backgroundColor = 'rgba(255, 255, 255, 0.5)';
             }, 300);
             
             if ('vibrate' in navigator) {
