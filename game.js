@@ -8,8 +8,8 @@ class FantaGame {
         this.targetZone = document.getElementById('targetZone');
         
         this.rotation = 0;
-        this.speed = 6; // Fast rotation speed
-        this.lives = 2;
+        this.speed = 5.4; // Reduced from 6 (10% slower)
+        this.lives = 3; // Increased from 2 to 3
         this.hits = 0;
         this.isGameOver = false;
         this.lastTiltTime = 0;
@@ -128,7 +128,7 @@ class FantaGame {
         const deltaBeta = currentBeta - this.baseOrientation.beta;
         
         // Detect forward tilt motion (positive delta means tilting forward)
-        if (deltaBeta > 15) {  // Threshold for forward tilt
+        if (deltaBeta > 10) {  // Reduced from 15 to 10 degrees for easier tilting
             this.lastTiltTime = now;
             this.checkBeamPosition();
             
