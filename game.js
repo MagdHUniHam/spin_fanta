@@ -23,41 +23,27 @@ class FantaGame {
     }
 
     setupGame() {
-        // Check if device orientation is supported
-        if (!window.DeviceOrientationEvent) {
+        // Only check if DeviceOrientationEvent is not supported at all
+        if (typeof DeviceOrientationEvent === 'undefined') {
             this.useFallback = true;
         }
 
         this.showMessage(
             'Welcome to Fanta Spin!',
-            this.useFallback ? 
-                'Tap the screen or press SPACE to play!<br><br>Hit the target when the beam aligns!' :
-                'Hold your phone in a comfortable position and tap anywhere to start.<br><br>Tilt your phone forward when the beam hits the target!',
+            'Hold your phone in a comfortable position and tap anywhere to start.<br><br>Tilt your phone forward when the beam hits the target!',
             false
         );
 
-        // Add keyboard controls for desktop testing
-        document.addEventListener('keydown', (e) => {
-            if (e.code === 'Space') {
-                this.checkBeamPosition();
-            }
-        });
-
-        // Add touch controls
+        // Only add touch/click controls for the first tap to start
         document.addEventListener('touchstart', () => {
             if (this.isFirstClick) {
                 this.handleFirstClick();
-            } else if (this.useFallback) {
-                this.checkBeamPosition();
             }
         });
 
-        // Add click for desktop
         document.addEventListener('click', () => {
             if (this.isFirstClick) {
                 this.handleFirstClick();
-            } else if (this.useFallback) {
-                this.checkBeamPosition();
             }
         });
     }
@@ -67,43 +53,53 @@ class FantaGame {
         this.isFirstClick = false;
         this.messageElement.style.display = 'none';
         
-        if (!this.useFallback) {
-            try {
-                if (typeof DeviceOrientationEvent !== 'undefined' && 
-                    typeof DeviceOrientationEvent.requestPermission === 'function') {
-                    const permission = await DeviceOrientationEvent.requestPermission();
-                    if (permission === 'granted') {
-                        this.startGame();
-                    } else {
-                        this.useFallback = true;
-                        this.startGame();
-                    }
-                } else {
+        try {
+            // Request permission on iOS
+            if (typeof DeviceOrientationEvent !== 'undefined' && 
+                typeof DeviceOrientationEvent.requestPermission === 'function') {
+                const permission = await DeviceOrientationEvent.requestPermission();
+                if (permission === 'granted') {
                     this.startGame();
+                } else {
+                    throw new Error('Permission denied');
                 }
-            } catch (error) {
-                console.log('Motion sensor error, using fallback:', error);
-                this.useFallback = true;
+            } else {
+                // For non-iOS devices, just start the game
                 this.startGame();
             }
-        } else {
-            this.startGame();
+        } catch (error) {
+            console.log('Motion sensor error:', error);
+            // Show error message and reload option
+            this.showMessage(
+                'Sensor Error',
+                'Please allow motion sensors and reload the game.',
+                true
+            );
         }
     }
 
     startGame() {
-        if (!this.useFallback) {
-            window.addEventListener('deviceorientation', (e) => {
-                if (this.baseOrientation === null) {
-                    this.baseOrientation = {
-                        beta: e.beta || 0,
-                        gamma: e.gamma || 0
-                    };
-                    return;
-                }
-                this.handleTilt(e);
-            }, { frequency: 60 }); // Add higher frequency updates
-        }
+        // Always try to use device orientation
+        window.addEventListener('deviceorientation', (e) => {
+            if (!e.beta && !e.gamma) {
+                // If we're not getting real sensor data, show error
+                this.showMessage(
+                    'Sensor Error',
+                    'Motion sensors not available. Please try on a device with motion sensors.',
+                    true
+                );
+                return;
+            }
+            
+            if (this.baseOrientation === null) {
+                this.baseOrientation = {
+                    beta: e.beta || 0,
+                    gamma: e.gamma || 0
+                };
+                return;
+            }
+            this.handleTilt(e);
+        }, { frequency: 60 });
 
         this.gameLoop();
         
