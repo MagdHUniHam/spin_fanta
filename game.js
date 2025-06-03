@@ -15,60 +15,94 @@ class FantaGame {
         this.tiltCooldown = 500; // Quick cooldown for harder gameplay
         this.isFirstClick = true;
         this.baseOrientation = null;
+        this.useFallback = false;
         
         this.setupGame();
     }
 
     setupGame() {
+        // Check if device orientation is supported
+        if (!window.DeviceOrientationEvent) {
+            this.useFallback = true;
+        }
+
         this.showMessage(
             'Welcome to Fanta Spin!',
-            'Hold your phone in a comfortable position and tap anywhere to start.<br><br>Tilt your phone forward when the beam hits the target!',
+            this.useFallback ? 
+                'Tap the screen or press SPACE to play!<br><br>Hit the target when the beam aligns!' :
+                'Hold your phone in a comfortable position and tap anywhere to start.<br><br>Tilt your phone forward when the beam hits the target!',
             false
         );
 
-        document.body.addEventListener('click', () => this.handleFirstClick(), { once: true });
+        // Add keyboard controls for desktop testing
+        document.addEventListener('keydown', (e) => {
+            if (e.code === 'Space') {
+                this.checkBeamPosition();
+            }
+        });
+
+        // Add touch controls
+        document.addEventListener('touchstart', () => {
+            if (this.isFirstClick) {
+                this.handleFirstClick();
+            } else if (this.useFallback) {
+                this.checkBeamPosition();
+            }
+        });
+
+        // Add click for desktop
+        document.addEventListener('click', () => {
+            if (this.isFirstClick) {
+                this.handleFirstClick();
+            } else if (this.useFallback) {
+                this.checkBeamPosition();
+            }
+        });
     }
 
     async handleFirstClick() {
+        if (!this.isFirstClick) return;
+        this.isFirstClick = false;
         this.messageElement.style.display = 'none';
         
-        try {
-            if (typeof DeviceOrientationEvent !== 'undefined' && 
-                typeof DeviceOrientationEvent.requestPermission === 'function') {
-                const permission = await DeviceOrientationEvent.requestPermission();
-                if (permission === 'granted') {
-                    this.startGame();
+        if (!this.useFallback) {
+            try {
+                if (typeof DeviceOrientationEvent !== 'undefined' && 
+                    typeof DeviceOrientationEvent.requestPermission === 'function') {
+                    const permission = await DeviceOrientationEvent.requestPermission();
+                    if (permission === 'granted') {
+                        this.startGame();
+                    } else {
+                        this.useFallback = true;
+                        this.startGame();
+                    }
                 } else {
-                    this.showMessage(
-                        'Permission Denied',
-                        'Please allow motion sensors to play the game.',
-                        true
-                    );
+                    this.startGame();
                 }
-            } else {
+            } catch (error) {
+                console.log('Motion sensor error, using fallback:', error);
+                this.useFallback = true;
                 this.startGame();
             }
-        } catch (error) {
-            this.showMessage(
-                'Error',
-                'Could not access motion sensors. Please try again.',
-                true
-            );
+        } else {
+            this.startGame();
         }
     }
 
     startGame() {
-        setTimeout(() => {
-            window.addEventListener('deviceorientation', (e) => {
-                if (this.baseOrientation === null) {
-                    this.baseOrientation = {
-                        beta: e.beta || 0,
-                        gamma: e.gamma || 0
-                    };
-                }
-                this.handleTilt(e);
-            });
-        }, 500);
+        if (!this.useFallback) {
+            setTimeout(() => {
+                window.addEventListener('deviceorientation', (e) => {
+                    if (this.baseOrientation === null) {
+                        this.baseOrientation = {
+                            beta: e.beta || 0,
+                            gamma: e.gamma || 0
+                        };
+                    }
+                    this.handleTilt(e);
+                });
+            }, 500);
+        }
 
         this.gameLoop();
         
@@ -99,7 +133,12 @@ class FantaGame {
     }
 
     checkBeamPosition() {
-        // The target zone is at the top (between 350 and 10 degrees for a narrower window)
+        if (this.isGameOver) return;
+        
+        const now = Date.now();
+        if (now - this.lastTiltTime < this.tiltCooldown) return;
+        this.lastTiltTime = now;
+
         const normalizedRotation = ((this.rotation % 360) + 360) % 360;
         const isInTargetZone = normalizedRotation > 350 || normalizedRotation < 10;
 
@@ -107,7 +146,6 @@ class FantaGame {
             this.hits++;
             this.hitsElement.textContent = this.hits;
             
-            // Success feedback
             this.beam.style.backgroundColor = '#00FF00';
             setTimeout(() => {
                 this.beam.style.background = 'linear-gradient(to top, rgba(255, 255, 255, 0.8), rgba(255, 255, 255, 0.2))';
@@ -124,7 +162,6 @@ class FantaGame {
             this.lives--;
             this.livesElement.textContent = this.lives;
             
-            // Failure feedback
             this.beam.style.backgroundColor = '#FF0000';
             setTimeout(() => {
                 this.beam.style.background = 'linear-gradient(to top, rgba(255, 255, 255, 0.8), rgba(255, 255, 255, 0.2))';
@@ -183,7 +220,7 @@ class FantaGame {
         } else {
             this.showMessage(
                 'Game Over',
-                'You ran out of lives!<br>Remember to tilt only when the beam hits the target!',
+                'You ran out of lives!<br>Remember to hit only when the beam aligns with the target!',
                 true
             );
             if ('vibrate' in navigator) {
@@ -196,7 +233,6 @@ class FantaGame {
         if (!this.isGameOver) {
             this.rotation = (this.rotation + this.speed) % 360;
             
-            // Rotate both can and beam
             this.can.style.transform = `rotate(${this.rotation}deg)`;
             this.beam.style.transform = `translateX(-50%) rotate(${this.rotation}deg)`;
         }
