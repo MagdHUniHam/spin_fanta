@@ -7,22 +7,22 @@ class FantaGame {
         this.messageElement = document.getElementById('message');
         
         this.rotation = 0;
-        this.speed = 1.5; // Slightly slower for better playability
+        this.speed = 4; // Much faster rotation speed
         this.lives = 3;
         this.drinks = 0;
         this.isGameOver = false;
         this.lastTiltTime = 0;
-        this.tiltCooldown = 1200; // Slightly longer cooldown for better control
+        this.tiltCooldown = 800; // Shorter cooldown for faster gameplay
         this.isFirstClick = true;
+        this.baseOrientation = null;
         
         this.setupGame();
     }
 
     setupGame() {
-        // Show initial message
         this.showMessage(
             'Welcome to Fanta Spin!',
-            'Tap anywhere to start the game and enable tilt controls.',
+            'Hold your phone in a comfortable position and tap anywhere to start.<br><br>Tilt your phone forward to drink when the can is in the white zone!',
             false
         );
 
@@ -33,7 +33,6 @@ class FantaGame {
         this.messageElement.style.display = 'none';
         
         try {
-            // Request device orientation permission on iOS
             if (typeof DeviceOrientationEvent !== 'undefined' && 
                 typeof DeviceOrientationEvent.requestPermission === 'function') {
                 const permission = await DeviceOrientationEvent.requestPermission();
@@ -47,7 +46,6 @@ class FantaGame {
                     );
                 }
             } else {
-                // Non-iOS devices
                 this.startGame();
             }
         } catch (error) {
@@ -60,33 +58,50 @@ class FantaGame {
     }
 
     startGame() {
-        window.addEventListener('deviceorientation', (e) => this.handleTilt(e));
+        // Set initial orientation after a short delay to let user position phone
+        setTimeout(() => {
+            window.addEventListener('deviceorientation', (e) => {
+                if (this.baseOrientation === null) {
+                    this.baseOrientation = {
+                        beta: e.beta || 0,
+                        gamma: e.gamma || 0
+                    };
+                }
+                this.handleTilt(e);
+            });
+        }, 500);
+
         this.gameLoop();
         
-        // Add vibration feedback if available
         if ('vibrate' in navigator) {
             navigator.vibrate(200);
         }
     }
 
     handleTilt(event) {
-        if (this.isGameOver) return;
+        if (this.isGameOver || !this.baseOrientation) return;
         
         const now = Date.now();
         if (now - this.lastTiltTime < this.tiltCooldown) return;
 
-        const tiltThreshold = 25; // Increased threshold for better control
-        const gamma = event.gamma || 0; // Left/Right tilt
-        const beta = event.beta || 0;   // Front/Back tilt
-
-        if (Math.abs(gamma) > tiltThreshold || Math.abs(beta) > tiltThreshold) {
+        const currentBeta = event.beta || 0;
+        const deltaBeta = currentBeta - this.baseOrientation.beta;
+        
+        // Only detect forward tilt (positive change in beta)
+        const tiltThreshold = 20;
+        if (deltaBeta > tiltThreshold) {
             this.lastTiltTime = now;
             this.checkDrinkingPosition();
+            
+            // Reset base orientation after each tilt
+            this.baseOrientation = {
+                beta: currentBeta,
+                gamma: event.gamma || 0
+            };
         }
     }
 
     checkDrinkingPosition() {
-        // The drinking zone is at the top (between 345 and 15 degrees)
         const normalizedRotation = ((this.rotation % 360) + 360) % 360;
         const isInDrinkingZone = normalizedRotation > 345 || normalizedRotation < 15;
 
