@@ -21,7 +21,10 @@ class FantaGame {
         this.isFirstClick = true;
         this.baseOrientation = null;
         this.useFallback = false;
-        this.tiltThreshold = 15; // New variable for tilt sensitivity
+        this.isTilting = false; // Track if we're in a tilt motion
+        this.tiltStartRotation = null; // Store rotation when tilt starts
+        this.lastBeta = null; // Track last beta value
+        this.recentBetas = []; // Track recent beta values for movement detection
         
         this.setupGame();
     }
@@ -99,30 +102,29 @@ class FantaGame {
     }
 
     startGame() {
-        let hasReceivedSensorData = false;
-
+        // Always try to use device orientation
         window.addEventListener('deviceorientation', (e) => {
-            // Mark that we've received sensor data
-            if (!hasReceivedSensorData && (e.beta !== null || e.gamma !== null)) {
-                hasReceivedSensorData = true;
+            if (!e.beta && e.beta !== 0) {
+                // If we're not getting real sensor data, show error
+                this.showMessage(
+                    'Sensor Error',
+                    'Motion sensors not available. Please try on a device with motion sensors.',
+                    true
+                );
+                return;
             }
-
-            // Initialize base orientation on first valid reading
-            if (this.baseOrientation === null && hasReceivedSensorData) {
+            
+            if (this.baseOrientation === null) {
                 this.baseOrientation = {
                     beta: e.beta || 0,
                     gamma: e.gamma || 0
                 };
+                this.lastBeta = e.beta || 0;
                 return;
             }
-
-            // Only handle tilt if we have valid sensor data
-            if (hasReceivedSensorData) {
-                this.handleTilt(e);
-            }
+            this.handleTilt(e);
         }, { frequency: 60 });
 
-        // Start the game loop immediately
         this.gameLoop();
         
         if ('vibrate' in navigator) {
@@ -134,58 +136,82 @@ class FantaGame {
         if (this.isGameOver || !this.baseOrientation) return;
         
         const now = Date.now();
-        if (now - this.lastTiltTime < this.tiltCooldown) return;
-
         const currentBeta = event.beta || 0;
-        
-        // Only check forward tilt (beta) - like drinking motion
-        const deltaBeta = currentBeta - this.baseOrientation.beta;
-        
-        // More forgiving tilt detection
-        if (deltaBeta > 8) {  // Reduced from 15 to 8 degrees for easier tilting
+
+        // Initialize lastBeta if needed
+        if (this.lastBeta === null) {
+            this.lastBeta = currentBeta;
+            return;
+        }
+
+        // Track recent movements
+        this.recentBetas.push(currentBeta);
+        if (this.recentBetas.length > 3) {
+            this.recentBetas.shift();
+        }
+
+        // Calculate recent movement (positive means forward tilt)
+        const recentMovement = this.recentBetas.length >= 2 ? 
+            this.recentBetas[this.recentBetas.length - 1] - this.recentBetas[0] : 0;
+
+        // Detect forward tilting movement
+        if (!this.isTilting && recentMovement > 10) { // Threshold of 10 degrees of forward movement
+            this.isTilting = true;
+            this.tiltStartRotation = this.rotation;
+            this.checkBeamPosition(true);
             this.lastTiltTime = now;
-            this.checkBeamPosition();
-            
-            // Update base orientation more gradually
+        }
+        // Reset when movement stops
+        else if (this.isTilting && Math.abs(currentBeta - this.lastBeta) < 2) {
+            this.isTilting = false;
+            this.tiltStartRotation = null;
+        }
+
+        this.lastBeta = currentBeta;
+        
+        // Update base orientation less frequently
+        if (now - this.lastTiltTime > 1000) {
             this.baseOrientation = {
-                beta: this.baseOrientation.beta * 0.8 + currentBeta * 0.2,
+                beta: currentBeta,
                 gamma: event.gamma || 0
             };
         }
     }
 
-    checkBeamPosition() {
+    checkBeamPosition(isTiltStart = false) {
         if (this.isGameOver) return;
-
-        // Add protection against rapid life loss
-        const now = Date.now();
-        if (now - this.lastTiltTime < this.tiltCooldown) return;
+        
+        // Only process if this is the start of a tilt or we haven't checked recently
+        if (!isTiltStart && Date.now() - this.lastTiltTime < this.tiltCooldown) return;
         
         const normalizedRotation = ((this.rotation % 360) + 360) % 360;
         // Hit zone at the top (150 degrees total, centered at top)
         const isInTargetZone = normalizedRotation >= 285 || normalizedRotation <= 75;
 
         if (isInTargetZone) {
-            this.hits++;
-            this.hitsElement.textContent = this.hits;
-            
-            // Visual feedback
-            this.beam.style.backgroundColor = '#00FF00';
-            setTimeout(() => {
-                this.beam.style.background = 'linear-gradient(to top, rgba(255, 255, 255, 0.8), rgba(255, 255, 255, 0.2))';
-            }, 300);
-            
-            if ('vibrate' in navigator) {
-                navigator.vibrate([100, 50, 100]);
+            // Only count hit if this is the start of a tilt
+            if (isTiltStart) {
+                this.hits++;
+                this.hitsElement.textContent = this.hits;
+                
+                // Visual feedback
+                this.beam.style.backgroundColor = '#00FF00';
+                setTimeout(() => {
+                    this.beam.style.background = 'linear-gradient(to top, rgba(255, 255, 255, 0.8), rgba(255, 255, 255, 0.2))';
+                }, 300);
+                
+                if ('vibrate' in navigator) {
+                    navigator.vibrate([100, 50, 100]);
+                }
+                
+                if (this.hits >= 5) {
+                    this.gameOver(true);
+                }
             }
-            
-            if (this.hits >= 5) {
-                this.gameOver(true);
-            }
-        } else {
-            // Add cooldown for life loss
-            if (now - this.lastLifeLossTime < 1000) return; // Prevent losing lives too quickly
-            this.lastLifeLossTime = now;
+        } else if (isTiltStart) { // Only lose life at the start of a tilt
+            // Prevent rapid life loss
+            const now = Date.now();
+            if (now - this.lastLifeLossTime < 1000) return;
             
             this.lives--;
             this.livesElement.textContent = this.lives;
