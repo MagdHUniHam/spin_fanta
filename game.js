@@ -54,7 +54,7 @@ class FantaGame {
         this.messageElement.style.display = 'none';
         
         try {
-            // Request permission on iOS
+            // Special handling for iOS
             if (typeof DeviceOrientationEvent !== 'undefined' && 
                 typeof DeviceOrientationEvent.requestPermission === 'function') {
                 const permission = await DeviceOrientationEvent.requestPermission();
@@ -64,12 +64,11 @@ class FantaGame {
                     throw new Error('Permission denied');
                 }
             } else {
-                // For non-iOS devices, just start the game
+                // For non-iOS devices, just start
                 this.startGame();
             }
         } catch (error) {
             console.log('Motion sensor error:', error);
-            // Show error message and reload option
             this.showMessage(
                 'Sensor Error',
                 'Please allow motion sensors and reload the game.',
@@ -79,28 +78,30 @@ class FantaGame {
     }
 
     startGame() {
-        // Always try to use device orientation
+        let hasReceivedSensorData = false;
+
         window.addEventListener('deviceorientation', (e) => {
-            if (!e.beta && !e.gamma) {
-                // If we're not getting real sensor data, show error
-                this.showMessage(
-                    'Sensor Error',
-                    'Motion sensors not available. Please try on a device with motion sensors.',
-                    true
-                );
-                return;
+            // Mark that we've received sensor data
+            if (!hasReceivedSensorData && (e.beta !== null || e.gamma !== null)) {
+                hasReceivedSensorData = true;
             }
-            
-            if (this.baseOrientation === null) {
+
+            // Initialize base orientation on first valid reading
+            if (this.baseOrientation === null && hasReceivedSensorData) {
                 this.baseOrientation = {
                     beta: e.beta || 0,
                     gamma: e.gamma || 0
                 };
                 return;
             }
-            this.handleTilt(e);
+
+            // Only handle tilt if we have valid sensor data
+            if (hasReceivedSensorData) {
+                this.handleTilt(e);
+            }
         }, { frequency: 60 });
 
+        // Start the game loop immediately
         this.gameLoop();
         
         if ('vibrate' in navigator) {
