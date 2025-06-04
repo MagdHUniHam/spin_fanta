@@ -27,6 +27,7 @@ class FantaGame {
         this.recentBetas = []; // Track recent beta values for movement detection
         
         this.resetGame();
+        this.setupGame();
     }
 
     resetGame() {
@@ -52,29 +53,22 @@ class FantaGame {
     }
 
     setupGame() {
-        // Only check if DeviceOrientationEvent is not supported at all
-        if (typeof DeviceOrientationEvent === 'undefined') {
-            this.useFallback = true;
-        }
-
+        // Show welcome message first
         this.showMessage(
             'Welcome to Fanta Spin!',
             'Hold your phone in a comfortable position and tap anywhere to start.<br><br>Tilt your phone forward when the beam hits the target!',
             false
         );
 
-        // Only add touch/click controls for the first tap to start
-        document.addEventListener('touchstart', () => {
+        // Add touch/click controls for the first tap to start
+        const startHandler = () => {
             if (this.isFirstClick) {
                 this.handleFirstClick();
             }
-        });
+        };
 
-        document.addEventListener('click', () => {
-            if (this.isFirstClick) {
-                this.handleFirstClick();
-            }
-        });
+        document.addEventListener('touchstart', startHandler);
+        document.addEventListener('click', startHandler);
     }
 
     async handleFirstClick() {
@@ -176,15 +170,15 @@ class FantaGame {
         const recentMovement = this.recentBetas.length >= 2 ? 
             this.recentBetas[this.recentBetas.length - 1] - this.recentBetas[0] : 0;
 
-        // Detect forward tilting movement
-        if (!this.isTilting && recentMovement > 10) { // Threshold of 10 degrees of forward movement
+        // More forgiving tilt detection
+        if (!this.isTilting && recentMovement > 8) { // Reduced from 10 to 8 degrees for easier tilting
             this.isTilting = true;
             this.tiltStartRotation = this.rotation;
             this.checkBeamPosition(true);
             this.lastTiltTime = now;
         }
-        // Reset when movement stops
-        else if (this.isTilting && Math.abs(currentBeta - this.lastBeta) < 2) {
+        // Reset when movement stops or reverses
+        else if (this.isTilting && (Math.abs(currentBeta - this.lastBeta) < 2 || recentMovement < 0)) {
             this.isTilting = false;
             this.tiltStartRotation = null;
         }
@@ -202,38 +196,37 @@ class FantaGame {
 
     checkBeamPosition(isTiltStart = false) {
         if (this.isGameOver) return;
-        
+
         // Only process if this is the start of a tilt or we haven't checked recently
         if (!isTiltStart && Date.now() - this.lastTiltTime < this.tiltCooldown) return;
         
         const normalizedRotation = ((this.rotation % 360) + 360) % 360;
-        // Hit zone at the top (150 degrees total, centered at top)
-        const isInTargetZone = normalizedRotation >= 285 || normalizedRotation <= 75;
+        
+        // Simple hit zone check - 180 degrees total (wider target for easier hits)
+        const isInTargetZone = normalizedRotation >= 270 || normalizedRotation <= 90;
 
-        if (isInTargetZone) {
-            // Only count hit if this is the start of a tilt
-            if (isTiltStart) {
-                this.hits++;
-                this.hitsElement.textContent = this.hits;
-                
-                // Visual feedback
-                this.beam.style.backgroundColor = '#00FF00';
-                setTimeout(() => {
-                    this.beam.style.background = 'linear-gradient(to top, rgba(255, 255, 255, 0.8), rgba(255, 255, 255, 0.2))';
-                }, 300);
-                
-                if ('vibrate' in navigator) {
-                    navigator.vibrate([100, 50, 100]);
-                }
-                
-                if (this.hits >= 5) {
-                    this.gameOver(true);
-                }
+        if (isInTargetZone && isTiltStart) {
+            this.hits++;
+            this.hitsElement.textContent = this.hits;
+            
+            // Visual feedback
+            this.beam.style.backgroundColor = '#00FF00';
+            setTimeout(() => {
+                this.beam.style.background = 'linear-gradient(to top, rgba(255, 255, 255, 0.8), rgba(255, 255, 255, 0.2))';
+            }, 300);
+            
+            if ('vibrate' in navigator) {
+                navigator.vibrate([100, 50, 100]);
             }
-        } else if (isTiltStart) { // Only lose life at the start of a tilt
-            // Prevent rapid life loss
+            
+            if (this.hits >= 5) {
+                this.gameOver(true);
+            }
+        } else if (!isInTargetZone && isTiltStart) { // Miss - lose a life
+            // Add cooldown for life loss
             const now = Date.now();
-            if (now - this.lastLifeLossTime < 1000) return;
+            if (now - this.lastLifeLossTime < 2000) return; // Keep 2 second cooldown
+            this.lastLifeLossTime = now;
             
             this.lives--;
             this.livesElement.textContent = this.lives;
@@ -362,7 +355,7 @@ window.addEventListener('load', () => {
                 const permission = await DeviceOrientationEvent.requestPermission();
                 if (permission === 'granted') {
                     permissionButton.remove();
-                    showWelcomeMessage();
+                    new FantaGame();
                 } else {
                     alert('Please enable motion sensors in Safari settings to play the game.');
                 }
@@ -372,8 +365,8 @@ window.addEventListener('load', () => {
             }
         });
     } else {
-        // Non-iOS device, show welcome message directly
-        showWelcomeMessage();
+        // Non-iOS device, start game directly
+        new FantaGame();
     }
 });
 
