@@ -26,7 +26,29 @@ class FantaGame {
         this.lastBeta = null; // Track last beta value
         this.recentBetas = []; // Track recent beta values for movement detection
         
-        this.setupGame();
+        this.resetGame();
+    }
+
+    resetGame() {
+        this.rotation = 0;
+        this.speed = 5.4;
+        this.lives = 3;
+        this.hits = 0;
+        this.isGameOver = false;
+        this.lastTiltTime = 0;
+        this.lastLifeLossTime = 0;
+        this.tiltCooldown = 200;
+        this.isFirstClick = true;
+        this.baseOrientation = null;
+        this.useFallback = false;
+        this.isTilting = false;
+        this.tiltStartRotation = null;
+        this.lastBeta = null;
+        this.recentBetas = [];
+
+        // Update display
+        this.livesElement.textContent = this.lives;
+        this.hitsElement.textContent = this.hits;
     }
 
     setupGame() {
@@ -277,8 +299,8 @@ class FantaGame {
                 'You\'ve successfully hit the target 5 times!<br><br>Your code is: <strong>winner</strong>',
                 true,
                 () => {
-                    // Start a new game without requesting permission again
-                    new FantaGame();
+                    this.resetGame();
+                    this.setupGame();
                 }
             );
             if ('vibrate' in navigator) {
@@ -290,8 +312,8 @@ class FantaGame {
                 'You ran out of lives!<br>Remember to hit only when the beam aligns with the target!',
                 true,
                 () => {
-                    // Start a new game without requesting permission again
-                    new FantaGame();
+                    this.resetGame();
+                    this.setupGame();
                 }
             );
             if ('vibrate' in navigator) {
@@ -311,17 +333,7 @@ class FantaGame {
 
 // Start the game when the page loads
 window.addEventListener('load', () => {
-    requestMotionPermission();
-});
-
-async function requestMotionPermission() {
-    // If we already have permission, start the game directly
-    if (hasMotionPermission) {
-        new FantaGame();
-        return;
-    }
-
-    // Try to request permission on iOS
+    // Try to request permission immediately on iOS
     if (typeof DeviceOrientationEvent !== 'undefined' && 
         typeof DeviceOrientationEvent.requestPermission === 'function') {
         
@@ -349,9 +361,8 @@ async function requestMotionPermission() {
             try {
                 const permission = await DeviceOrientationEvent.requestPermission();
                 if (permission === 'granted') {
-                    hasMotionPermission = true;
                     permissionButton.remove();
-                    new FantaGame();
+                    showWelcomeMessage();
                 } else {
                     alert('Please enable motion sensors in Safari settings to play the game.');
                 }
@@ -361,8 +372,16 @@ async function requestMotionPermission() {
             }
         });
     } else {
-        // Non-iOS device, start game directly
-        hasMotionPermission = true;
-        new FantaGame();
+        // Non-iOS device, show welcome message directly
+        showWelcomeMessage();
     }
+});
+
+function showWelcomeMessage() {
+    const game = new FantaGame();
+    game.showMessage(
+        'Welcome to Fanta Spin!',
+        'Hold your phone in a comfortable position and tap anywhere to start.<br><br>Tilt your phone forward when the beam hits the target!',
+        false
+    );
 } 
