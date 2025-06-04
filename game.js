@@ -103,13 +103,7 @@ class FantaGame {
     showPermissionMessage() {
         this.showMessage(
             'Motion Access Needed',
-            `Please follow these steps:<br>
-            1. Open iPhone Settings<br>
-            2. Go to Safari Settings<br>
-            3. Tap "Settings for Websites"<br>
-            4. Tap "Motion & Orientation Access"<br>
-            5. Enable the toggle<br>
-            6. Return here and tap retry`,
+            'Please enable motion sensors in your browser settings and tap retry.',
             true,
             () => {
                 location.reload();
@@ -346,6 +340,7 @@ window.addEventListener('load', () => {
             font-size: 18px;
             cursor: pointer;
             z-index: 1000;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
         `;
         
         document.body.appendChild(permissionButton);
@@ -355,7 +350,7 @@ window.addEventListener('load', () => {
                 const permission = await DeviceOrientationEvent.requestPermission();
                 if (permission === 'granted') {
                     permissionButton.remove();
-                    new FantaGame();
+                    const game = new FantaGame();
                 } else {
                     alert('Please enable motion sensors in Safari settings to play the game.');
                 }
@@ -366,15 +361,6 @@ window.addEventListener('load', () => {
         });
     } else {
         // Non-iOS device, start game directly
-        new FantaGame();
+        const game = new FantaGame();
     }
-});
-
-function showWelcomeMessage() {
-    const game = new FantaGame();
-    game.showMessage(
-        'Welcome to Fanta Spin!',
-        'Hold your phone in a comfortable position and tap anywhere to start.<br><br>Tilt your phone forward when the beam hits the target!',
-        false
-    );
-} 
+}); 
