@@ -1,3 +1,6 @@
+// Add a global variable to track if we have permission
+let hasMotionPermission = false;
+
 class FantaGame {
     constructor() {
         this.canContainer = document.getElementById('canContainer');
@@ -13,6 +16,7 @@ class FantaGame {
         this.hits = 0;
         this.isGameOver = false;
         this.lastTiltTime = 0;
+        this.lastLifeLossTime = 0; // Add tracking for life loss timing
         this.tiltCooldown = 200; // Reduced from 300ms to 200ms for quicker response
         this.isFirstClick = true;
         this.baseOrientation = null;
@@ -137,14 +141,14 @@ class FantaGame {
         // Only check forward tilt (beta) - like drinking motion
         const deltaBeta = currentBeta - this.baseOrientation.beta;
         
-        // More sensitive tilt detection
-        if (deltaBeta > 5) {  // Reduced from 10 to 5 degrees for much easier tilting
+        // More forgiving tilt detection
+        if (deltaBeta > 8) {  // Reduced from 15 to 8 degrees for easier tilting
             this.lastTiltTime = now;
             this.checkBeamPosition();
             
-            // Gradually update base orientation for smoother detection
+            // Update base orientation more gradually
             this.baseOrientation = {
-                beta: this.baseOrientation.beta * 0.7 + currentBeta * 0.3, // Smooth transition
+                beta: this.baseOrientation.beta * 0.8 + currentBeta * 0.2,
                 gamma: event.gamma || 0
             };
         }
@@ -152,6 +156,10 @@ class FantaGame {
 
     checkBeamPosition() {
         if (this.isGameOver) return;
+
+        // Add protection against rapid life loss
+        const now = Date.now();
+        if (now - this.lastTiltTime < this.tiltCooldown) return;
         
         const normalizedRotation = ((this.rotation % 360) + 360) % 360;
         // Hit zone at the top (150 degrees total, centered at top)
@@ -161,6 +169,7 @@ class FantaGame {
             this.hits++;
             this.hitsElement.textContent = this.hits;
             
+            // Visual feedback
             this.beam.style.backgroundColor = '#00FF00';
             setTimeout(() => {
                 this.beam.style.background = 'linear-gradient(to top, rgba(255, 255, 255, 0.8), rgba(255, 255, 255, 0.2))';
@@ -174,9 +183,14 @@ class FantaGame {
                 this.gameOver(true);
             }
         } else {
+            // Add cooldown for life loss
+            if (now - this.lastLifeLossTime < 1000) return; // Prevent losing lives too quickly
+            this.lastLifeLossTime = now;
+            
             this.lives--;
             this.livesElement.textContent = this.lives;
             
+            // Visual feedback
             this.beam.style.backgroundColor = '#FF0000';
             setTimeout(() => {
                 this.beam.style.background = 'linear-gradient(to top, rgba(255, 255, 255, 0.8), rgba(255, 255, 255, 0.2))';
@@ -216,16 +230,16 @@ class FantaGame {
                        font-size: ${title.includes('Game Over') ? '32px' : '24px'};
                        margin-bottom: 20px;">${title}</h2>
             <p style="font-size: 18px; line-height: 1.5;">${text}</p>
-            ${showReload ? `<button onclick="${onRetry ? 'retry()' : 'location.reload()'}" ${buttonStyle}>
-                ${onRetry ? 'Retry' : 'Try Again'}
-            </button>` : ''}
+            ${showReload ? `<button onclick="window.retryGame()" ${buttonStyle}>Try Again</button>` : ''}
         `;
 
-        if (onRetry) {
-            window.retry = () => {
+        // Set up the retry function
+        window.retryGame = () => {
+            this.messageElement.style.display = 'none';
+            if (onRetry) {
                 onRetry();
-            };
-        }
+            }
+        };
     }
 
     gameOver(isWinner) {
@@ -235,7 +249,11 @@ class FantaGame {
             this.showMessage(
                 '🎉 Congratulations! 🎉',
                 'You\'ve successfully hit the target 5 times!<br><br>Your code is: <strong>winner</strong>',
-                true
+                true,
+                () => {
+                    // Start a new game without requesting permission again
+                    new FantaGame();
+                }
             );
             if ('vibrate' in navigator) {
                 navigator.vibrate([100, 50, 100, 50, 200]);
@@ -244,7 +262,11 @@ class FantaGame {
             this.showMessage(
                 'Game Over',
                 'You ran out of lives!<br>Remember to hit only when the beam aligns with the target!',
-                true
+                true,
+                () => {
+                    // Start a new game without requesting permission again
+                    new FantaGame();
+                }
             );
             if ('vibrate' in navigator) {
                 navigator.vibrate([500, 100, 500]);
@@ -263,7 +285,17 @@ class FantaGame {
 
 // Start the game when the page loads
 window.addEventListener('load', () => {
-    // Try to request permission immediately on iOS
+    requestMotionPermission();
+});
+
+async function requestMotionPermission() {
+    // If we already have permission, start the game directly
+    if (hasMotionPermission) {
+        new FantaGame();
+        return;
+    }
+
+    // Try to request permission on iOS
     if (typeof DeviceOrientationEvent !== 'undefined' && 
         typeof DeviceOrientationEvent.requestPermission === 'function') {
         
@@ -291,6 +323,7 @@ window.addEventListener('load', () => {
             try {
                 const permission = await DeviceOrientationEvent.requestPermission();
                 if (permission === 'granted') {
+                    hasMotionPermission = true;
                     permissionButton.remove();
                     new FantaGame();
                 } else {
@@ -303,6 +336,7 @@ window.addEventListener('load', () => {
         });
     } else {
         // Non-iOS device, start game directly
+        hasMotionPermission = true;
         new FantaGame();
     }
-}); 
+} 
