@@ -57,11 +57,15 @@ class FantaGame {
             // Special handling for iOS
             if (typeof DeviceOrientationEvent !== 'undefined' && 
                 typeof DeviceOrientationEvent.requestPermission === 'function') {
-                const permission = await DeviceOrientationEvent.requestPermission();
-                if (permission === 'granted') {
-                    this.startGame();
-                } else {
-                    throw new Error('Permission denied');
+                try {
+                    const permission = await DeviceOrientationEvent.requestPermission();
+                    if (permission === 'granted') {
+                        this.startGame();
+                    } else {
+                        this.showPermissionMessage();
+                    }
+                } catch (error) {
+                    this.showPermissionMessage();
                 }
             } else {
                 // For non-iOS devices, just start
@@ -69,12 +73,25 @@ class FantaGame {
             }
         } catch (error) {
             console.log('Motion sensor error:', error);
-            this.showMessage(
-                'Sensor Error',
-                'Please allow motion sensors and reload the game.',
-                true
-            );
+            this.showPermissionMessage();
         }
+    }
+
+    showPermissionMessage() {
+        this.showMessage(
+            'Motion Access Needed',
+            `Please follow these steps:<br>
+            1. Open iPhone Settings<br>
+            2. Go to Safari Settings<br>
+            3. Tap "Settings for Websites"<br>
+            4. Tap "Motion & Orientation Access"<br>
+            5. Enable the toggle<br>
+            6. Return here and tap retry`,
+            true,
+            () => {
+                location.reload();
+            }
+        );
     }
 
     startGame() {
@@ -175,7 +192,7 @@ class FantaGame {
         }
     }
 
-    showMessage(title, text, showReload = false) {
+    showMessage(title, text, showReload = false, onRetry = null) {
         this.messageElement.style.display = 'block';
         let buttonStyle = `
             style="
@@ -199,8 +216,16 @@ class FantaGame {
                        font-size: ${title.includes('Game Over') ? '32px' : '24px'};
                        margin-bottom: 20px;">${title}</h2>
             <p style="font-size: 18px; line-height: 1.5;">${text}</p>
-            ${showReload ? `<button onclick="location.reload()" ${buttonStyle}>Try Again</button>` : ''}
+            ${showReload ? `<button onclick="${onRetry ? 'retry()' : 'location.reload()'}" ${buttonStyle}>
+                ${onRetry ? 'Retry' : 'Try Again'}
+            </button>` : ''}
         `;
+
+        if (onRetry) {
+            window.retry = () => {
+                onRetry();
+            };
+        }
     }
 
     gameOver(isWinner) {
