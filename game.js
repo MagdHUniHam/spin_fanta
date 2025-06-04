@@ -263,5 +263,46 @@ class FantaGame {
 
 // Start the game when the page loads
 window.addEventListener('load', () => {
-    new FantaGame();
+    // Try to request permission immediately on iOS
+    if (typeof DeviceOrientationEvent !== 'undefined' && 
+        typeof DeviceOrientationEvent.requestPermission === 'function') {
+        
+        // Add a button to request permission
+        const permissionButton = document.createElement('button');
+        permissionButton.innerHTML = 'Tap to Enable Motion Controls';
+        permissionButton.style.cssText = `
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background-color: #FF4500;
+            border: none;
+            color: white;
+            padding: 20px 40px;
+            border-radius: 25px;
+            font-size: 18px;
+            cursor: pointer;
+            z-index: 1000;
+        `;
+        
+        document.body.appendChild(permissionButton);
+        
+        permissionButton.addEventListener('click', async () => {
+            try {
+                const permission = await DeviceOrientationEvent.requestPermission();
+                if (permission === 'granted') {
+                    permissionButton.remove();
+                    new FantaGame();
+                } else {
+                    alert('Please enable motion sensors in Safari settings to play the game.');
+                }
+            } catch (error) {
+                console.error('Error requesting permission:', error);
+                alert('Error requesting motion permission. Please check your Safari settings.');
+            }
+        });
+    } else {
+        // Non-iOS device, start game directly
+        new FantaGame();
+    }
 }); 
