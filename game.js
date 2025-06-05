@@ -3,231 +3,113 @@ let hasMotionPermission = false;
 
 class FantaGame {
     constructor() {
+        // Get DOM elements
         this.canContainer = document.getElementById('canContainer');
         this.beam = document.getElementById('beam');
         this.livesElement = document.getElementById('lives');
         this.hitsElement = document.getElementById('hits');
         this.messageElement = document.getElementById('message');
-        this.targetZone = document.getElementById('targetZone');
         
+        // Game state
         this.rotation = 0;
         this.speed = 5.4;
         this.lives = 3;
         this.hits = 0;
         this.isGameOver = false;
         this.lastTiltTime = 0;
-        this.lastLifeLossTime = 0;
-        this.tiltCooldown = 200;
-        this.isFirstClick = true;
-        this.baseOrientation = null;
-        this.useFallback = false;
-        this.isTilting = false;
-        this.tiltStartRotation = null;
-        this.lastBeta = null;
-        this.recentBetas = [];
-        
-        this.resetGame();
-        this.setupGame();
-    }
-
-    resetGame() {
-        this.rotation = 0;
-        this.speed = 5.4;
-        this.lives = 3;
-        this.hits = 0;
-        this.isGameOver = false;
-        this.lastTiltTime = 0;
-        this.lastLifeLossTime = 0;
-        this.tiltCooldown = 200;
-        this.isFirstClick = true;
-        this.baseOrientation = null;
-        this.useFallback = false;
-        this.isTilting = false;
-        this.tiltStartRotation = null;
         this.lastBeta = null;
         this.recentBetas = [];
 
-        this.livesElement.textContent = `Lives: ${this.lives}`;
-        this.hitsElement.textContent = `Hits: ${this.hits}`;
-        this.canContainer.style.transform = 'translate(-50%, -50%) rotate(0deg)';
+        this.showWelcomeMessage();
+        this.setupControls();
     }
 
-    setupGame() {
-        this.showMessage(
-            'Welcome to Fanta Spin!',
-            'Hold your phone in a comfortable position and tap anywhere to start.<br><br>Tilt your phone forward when the beam hits the target!',
-            false
-        );
+    showWelcomeMessage() {
+        this.messageElement.innerHTML = `
+            <h2 style="color: white; font-size: 24px;">Welcome to Fanta Spin!</h2>
+            <p style="font-size: 16px;">Hold your phone in a comfortable position and tap anywhere to start.<br><br>
+            Tilt your phone forward when the beam hits the target!</p>
+        `;
+        this.messageElement.style.display = 'block';
+    }
 
-        const startHandler = () => {
-            if (this.isFirstClick) {
-                this.handleFirstClick();
+    setupControls() {
+        const startGame = async () => {
+            if (typeof DeviceOrientationEvent.requestPermission === 'function') {
+                const permission = await DeviceOrientationEvent.requestPermission();
+                if (permission !== 'granted') {
+                    alert('Please enable motion sensors to play the game.');
+                    return;
+                }
             }
+            
+            this.messageElement.style.display = 'none';
+            this.start();
         };
 
-        document.addEventListener('touchstart', startHandler);
-        document.addEventListener('click', startHandler);
+        document.addEventListener('click', startGame, { once: true });
+        document.addEventListener('touchstart', startGame, { once: true });
     }
 
-    async handleFirstClick() {
-        if (!this.isFirstClick) return;
-        this.isFirstClick = false;
-        this.messageElement.style.display = 'none';
-        
-        try {
-            if (typeof DeviceOrientationEvent !== 'undefined' && 
-                typeof DeviceOrientationEvent.requestPermission === 'function') {
-                try {
-                    const permission = await DeviceOrientationEvent.requestPermission();
-                    if (permission === 'granted') {
-                        this.startGame();
-                    } else {
-                        this.showPermissionMessage();
-                    }
-                } catch (error) {
-                    this.showPermissionMessage();
-                }
-            } else {
-                this.startGame();
-            }
-        } catch (error) {
-            console.log('Motion sensor error:', error);
-            this.showPermissionMessage();
-        }
-    }
-
-    showPermissionMessage() {
-        this.showMessage(
-            'Motion Access Needed',
-            'Please enable motion sensors in your browser settings and tap retry.',
-            true,
-            () => {
-                location.reload();
-            }
-        );
-    }
-
-    startGame() {
+    start() {
+        // Setup motion detection
         window.addEventListener('deviceorientation', (e) => {
-            if (!e.beta && e.beta !== 0) {
-                this.showMessage(
-                    'Sensor Error',
-                    'Motion sensors not available. Please try on a device with motion sensors.',
-                    true
-                );
-                return;
-            }
+            if (!e.beta && e.beta !== 0) return;
             
-            if (this.baseOrientation === null) {
-                this.baseOrientation = {
-                    beta: e.beta || 0,
-                    gamma: e.gamma || 0
-                };
-                this.lastBeta = e.beta || 0;
-                return;
+            this.recentBetas.push(e.beta);
+            if (this.recentBetas.length > 3) this.recentBetas.shift();
+
+            const movement = this.recentBetas.length >= 2 ? 
+                this.recentBetas[this.recentBetas.length - 1] - this.recentBetas[0] : 0;
+
+            if (movement > 8 && Date.now() - this.lastTiltTime > 200) {
+                this.checkHit();
+                this.lastTiltTime = Date.now();
             }
-            this.handleTilt(e);
-        }, { frequency: 60 });
+        });
 
+        // Start the game loop
         this.gameLoop();
-        
-        if ('vibrate' in navigator) {
-            navigator.vibrate(200);
-        }
     }
 
-    handleTilt(event) {
-        if (this.isGameOver || !this.baseOrientation) return;
-        
-        const now = Date.now();
-        const currentBeta = event.beta || 0;
-
-        if (this.lastBeta === null) {
-            this.lastBeta = currentBeta;
-            return;
-        }
-
-        this.recentBetas.push(currentBeta);
-        if (this.recentBetas.length > 3) {
-            this.recentBetas.shift();
-        }
-
-        const recentMovement = this.recentBetas.length >= 2 ? 
-            this.recentBetas[this.recentBetas.length - 1] - this.recentBetas[0] : 0;
-
-        if (!this.isTilting && recentMovement > 8) {
-            this.isTilting = true;
-            this.tiltStartRotation = this.rotation;
-            this.checkBeamPosition(true);
-            this.lastTiltTime = now;
-        } else if (this.isTilting && (Math.abs(currentBeta - this.lastBeta) < 2 || recentMovement < 0)) {
-            this.isTilting = false;
-            this.tiltStartRotation = null;
-        }
-
-        this.lastBeta = currentBeta;
-        
-        if (now - this.lastTiltTime > 1000) {
-            this.baseOrientation = {
-                beta: currentBeta,
-                gamma: event.gamma || 0
-            };
-        }
-    }
-
-    checkBeamPosition(isTiltStart = false) {
-        if (this.isGameOver) return;
-
-        if (!isTiltStart && Date.now() - this.lastTiltTime < this.tiltCooldown) return;
-        
+    checkHit() {
         const normalizedRotation = ((this.rotation % 360) + 360) % 360;
-        
-        // 135 degrees total (67.5 degrees on each side of top)
         const isInTargetZone = normalizedRotation >= 292.5 || normalizedRotation <= 67.5;
 
-        if (isInTargetZone && isTiltStart) {
+        if (isInTargetZone) {
+            // Hit
             this.hits++;
             this.hitsElement.textContent = `Hits: ${this.hits}`;
-            
             this.beam.style.backgroundColor = '#00FF00';
-            setTimeout(() => {
-                this.beam.style.background = 'linear-gradient(to top, rgba(255, 255, 255, 0.8), rgba(255, 255, 255, 0.2))';
-            }, 300);
-            
-            if ('vibrate' in navigator) {
-                navigator.vibrate([100, 50, 100]);
-            }
-            
-            if (this.hits >= 5) {
-                this.gameOver(true);
-            }
-        } else if (!isInTargetZone && isTiltStart) {
-            const now = Date.now();
-            if (now - this.lastLifeLossTime < 2000) return;
-            this.lastLifeLossTime = now;
-            
+            if ('vibrate' in navigator) navigator.vibrate([100, 50, 100]);
+
+            if (this.hits >= 5) this.endGame(true);
+        } else {
+            // Miss
             this.lives--;
             this.livesElement.textContent = `Lives: ${this.lives}`;
-            
             this.beam.style.backgroundColor = '#FF0000';
-            setTimeout(() => {
-                this.beam.style.background = 'linear-gradient(to top, rgba(255, 255, 255, 0.8), rgba(255, 255, 255, 0.2))';
-            }, 300);
-            
-            if ('vibrate' in navigator) {
-                navigator.vibrate(500);
-            }
-            
-            if (this.lives <= 0) {
-                this.gameOver(false);
-            }
+            if ('vibrate' in navigator) navigator.vibrate(500);
+
+            if (this.lives <= 0) this.endGame(false);
         }
+
+        // Reset beam color
+        setTimeout(() => {
+            this.beam.style.background = 'linear-gradient(to top, rgba(255, 255, 255, 0.8), rgba(255, 255, 255, 0.2))';
+        }, 300);
     }
 
-    showMessage(title, text, showReload = false, onRetry = null) {
-        this.messageElement.style.display = 'block';
-        const buttonStyle = `
-            style="
+    endGame(isWinner) {
+        this.isGameOver = true;
+        this.messageElement.innerHTML = `
+            <h2 style="color: #FF4500; font-size: 32px;">
+                ${isWinner ? 'You Win! 🎉' : 'Game Over'}
+            </h2>
+            <p style="font-size: 16px;">
+                ${isWinner ? 'Awesome job! You hit all 5 targets!' : 'Better luck next time!'}
+            </p>
+            <button onclick="location.reload()" style="
                 background-color: #FF4500;
                 border: none;
                 color: white;
@@ -236,43 +118,11 @@ class FantaGame {
                 font-size: 18px;
                 margin-top: 20px;
                 cursor: pointer;
-                box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
-                transition: transform 0.2s;
-            "
-            onmouseover="this.style.transform='scale(1.05)'"
-            onmouseout="this.style.transform='scale(1)'"
+                box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);">
+                Play Again
+            </button>
         `;
-
-        this.messageElement.innerHTML = `
-            <h2 style="color: ${title.includes('Game Over') ? '#FF4500' : 'white'}; 
-                       font-size: ${title.includes('Game Over') ? '32px' : '24px'};">
-                ${title}
-            </h2>
-            <p style="font-size: 16px;">${text}</p>
-            ${showReload ? `<button ${buttonStyle}>Retry</button>` : ''}
-        `;
-
-        if (showReload && typeof onRetry === 'function') {
-            const button = this.messageElement.querySelector('button');
-            button.addEventListener('click', onRetry);
-        }
-    }
-
-    gameOver(isWinner) {
-        this.isGameOver = true;
-        const title = isWinner ? 'Game Over – You Win!' : 'Game Over';
-        const text = isWinner 
-            ? 'Awesome job! You hit all 5 targets! 🎉'
-            : 'Better luck next time! You ran out of lives.';
-        
-        this.showMessage(title, text, true, () => {
-            this.resetGame();
-            this.setupGame();
-        });
-
-        if ('vibrate' in navigator) {
-            navigator.vibrate(isWinner ? [100, 50, 100, 50, 200] : [500, 100, 500]);
-        }
+        this.messageElement.style.display = 'block';
     }
 
     gameLoop() {
@@ -285,46 +135,5 @@ class FantaGame {
 }
 
 // Start the game when the page loads
-window.addEventListener('load', () => {
-    if (typeof DeviceOrientationEvent !== 'undefined' && 
-        typeof DeviceOrientationEvent.requestPermission === 'function') {
-        
-        const permissionButton = document.createElement('button');
-        permissionButton.innerHTML = 'Tap to Enable Motion Controls';
-        permissionButton.style.cssText = `
-            position: fixed;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-            background-color: #FF4500;
-            border: none;
-            color: white;
-            padding: 20px 40px;
-            border-radius: 25px;
-            font-size: 18px;
-            cursor: pointer;
-            z-index: 1000;
-            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
-        `;
-        
-        document.body.appendChild(permissionButton);
-        
-        permissionButton.addEventListener('click', async () => {
-            try {
-                const permission = await DeviceOrientationEvent.requestPermission();
-                if (permission === 'granted') {
-                    permissionButton.remove();
-                    const game = new FantaGame();
-                } else {
-                    alert('Please enable motion sensors in Safari settings to play the game.');
-                }
-            } catch (error) {
-                console.error('Error requesting permission:', error);
-                alert('Error requesting motion permission. Please check your Safari settings.');
-            }
-        });
-    } else {
-        const game = new FantaGame();
-    }
-});
+window.addEventListener('load', () => new FantaGame());
  
