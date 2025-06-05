@@ -160,4 +160,3 @@ class FantaGame {
 
 // Start the game when the page loads
 window.addEventListener('load', () => new FantaGame());
- 
