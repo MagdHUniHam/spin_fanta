@@ -74,6 +74,7 @@
             transform: translate(-50%, -50%);
             pointer-events: none;
         }
+        /* Full white circle */
         #targetZone::before {
             content: '';
             position: absolute;
@@ -81,12 +82,10 @@
             left: 0;
             width: 100%;
             height: 100%;
-            border: 6px solid transparent;
-            border-top: 6px solid rgba(255, 255, 255, 0.8);
+            border: 2px solid rgba(255, 255, 255, 0.8);
             border-radius: 50%;
-            transform: rotate(-67.5deg);
-            clip-path: polygon(0 0, 100% 0, 100% 50%, 0 50%);
         }
+        /* Blue hit zone at top */
         #targetZone::after {
             content: '';
             position: absolute;
@@ -94,11 +93,11 @@
             left: 0;
             width: 100%;
             height: 100%;
-            border: 6px solid transparent;
-            border-top: 6px solid rgba(255, 255, 255, 0.8);
+            border: 8px solid transparent;
+            border-top: 8px solid #007bff;
             border-radius: 50%;
-            transform: rotate(67.5deg);
-            clip-path: polygon(0 0, 100% 0, 100% 50%, 0 50%);
+            transform: rotate(-67.5deg);
+            clip-path: polygon(-50% -50%, 150% -50%, 150% 50%, -50% 50%);
         }
         #lives, #hits {
             position: fixed;
@@ -114,6 +113,30 @@
         }
         #hits {
             right: 15px;
+            background-color: rgba(0, 123, 255, 0.2);
+            padding: 8px 12px;
+            border-radius: 15px;
+            display: flex;
+            gap: 5px;
+            align-items: center;
+        }
+        .drop {
+            width: 15px;
+            height: 15px;
+            background-color: #cccccc;
+            clip-path: path('M8 1.5c2.7 2.3 4.5 5 4.5 7.5a4.5 4.5 0 1 1-9 0C3.5 6.5 5.3 3.8 8 1.5z');
+            transition: background-color 0.3s ease;
+        }
+        .drop.filled {
+            background-color: #FF4500;
+        }
+        #logo {
+            position: fixed;
+            bottom: 15px;
+            right: 15px;
+            width: 80px;
+            height: auto;
+            z-index: 100;
         }
     </style>
 </head>
@@ -124,8 +147,15 @@
         <img id="can" src="fanta.png" alt="Fanta Can">
     </div>
     <div id="lives">Lives: 3</div>
-    <div id="hits">Hits: 0</div>
+    <div id="hits">
+        <div class="drop"></div>
+        <div class="drop"></div>
+        <div class="drop"></div>
+        <div class="drop"></div>
+        <div class="drop"></div>
+    </div>
     <div id="message"></div>
+    <img id="logo" src="logo.png" alt="Logo">
     <script src="game.js"></script>
 </body>
 </html> 
