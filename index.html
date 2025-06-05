@@ -113,22 +113,28 @@
             left: 15px;
         }
         #hits {
-            left: 75%;
-            transform: translateX(-50%);
+            position: fixed;
+            top: 15px;
+            right: 15px;
+            background-color: rgba(0, 123, 255, 0.2);
+            padding: 10px 15px;
+            border-radius: 20px;
             display: flex;
-            gap: 0px;
+            gap: 8px;
             align-items: center;
+            font-size: 18px;
+            color: white;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5);
         }
         .drop {
-            width: 100px;
-            height: 100px;
+            width: 20px;
+            height: 20px;
             background-color: #cccccc;
             clip-path: path('M8 1.5c2.7 2.3 4.5 5 4.5 7.5a4.5 4.5 0 1 1-9 0C3.5 6.5 5.3 3.8 8 1.5z');
             transition: background-color 0.3s ease;
-            transform: scale(0.8);
         }
         .drop.filled {
-            background-color: #007bff;
+            background-color: #FF4500;
         }
         #logo {
             position: fixed;
