@@ -104,7 +104,7 @@ class FantaGame {
 
     checkHit() {
         const normalizedRotation = ((this.rotation % 360) + 360) % 360;
-        const isInTargetZone = normalizedRotation >= 315 || normalizedRotation <= 45;
+        const isInTargetZone = normalizedRotation >= 330 || normalizedRotation <= 30;
 
         if (isInTargetZone) {
             // Hit
