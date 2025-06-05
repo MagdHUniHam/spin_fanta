@@ -89,15 +89,15 @@
         #targetZone::after {
             content: '';
             position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            border: 8px solid transparent;
-            border-top: 8px solid #007bff;
+            top: -12px;
+            left: -12px;
+            width: calc(100% + 24px);
+            height: calc(100% + 24px);
+            border: 12px solid transparent;
+            border-top: 12px solid #007bff;
             border-radius: 50%;
             transform: rotate(0deg);
-            clip-path: polygon(-50% -50%, 150% -50%, 150% 50%, -50% 50%);
+            clip-path: polygon(35% -50%, 65% -50%, 65% 50%, 35% 50%);
         }
         #lives, #hits {
             position: fixed;
@@ -114,7 +114,7 @@
         #hits {
             position: fixed;
             top: 15px;
-            left: 50%;
+            left: 65%;
             transform: translateX(-50%);
             background-color: rgba(0, 123, 255, 0.2);
             padding: 10px 15px;
@@ -124,12 +124,13 @@
             align-items: center;
         }
         .drop {
-            width: 20px;
-            height: 20px;
+            width: 25px;
+            height: 25px;
             background-color: #cccccc;
             clip-path: path('M8 1.5c2.7 2.3 4.5 5 4.5 7.5a4.5 4.5 0 1 1-9 0C3.5 6.5 5.3 3.8 8 1.5z');
             transition: background-color 0.3s ease;
             margin-left: 5px;
+            transform: scale(1.2);
         }
         .drop.filled {
             background-color: #FF4500;
