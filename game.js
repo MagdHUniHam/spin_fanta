@@ -11,8 +11,12 @@ class FantaGame {
         this.drops = Array.from(this.hitsElement.getElementsByClassName('drop'));
         this.messageElement = document.getElementById('message');
         
-        // Bind the motion handler to this instance
+        // Bind methods
         this.handleMotion = this.handleMotion.bind(this);
+        this.gameLoop = this.gameLoop.bind(this);
+        
+        // Animation frame ID
+        this.animationFrameId = null;
         
         this.initializeGame();
     }
@@ -42,6 +46,11 @@ class FantaGame {
     cleanup() {
         // Remove the motion event listener
         window.removeEventListener('deviceorientation', this.handleMotion);
+        // Cancel animation frame
+        if (this.animationFrameId) {
+            cancelAnimationFrame(this.animationFrameId);
+            this.animationFrameId = null;
+        }
         // Stop any ongoing animations
         this.isGameOver = true;
     }
@@ -82,9 +91,15 @@ class FantaGame {
     setupControls() {
         const startGame = async () => {
             if (typeof DeviceOrientationEvent.requestPermission === 'function') {
-                const permission = await DeviceOrientationEvent.requestPermission();
-                if (permission !== 'granted') {
-                    alert('Please enable motion sensors to play the game.');
+                try {
+                    const permission = await DeviceOrientationEvent.requestPermission();
+                    if (permission !== 'granted') {
+                        alert('Please enable motion sensors to play the game.');
+                        return;
+                    }
+                } catch (error) {
+                    console.error('Error requesting motion permission:', error);
+                    alert('Error accessing motion sensors. Please try again.');
                     return;
                 }
             }
@@ -93,6 +108,11 @@ class FantaGame {
             this.start();
         };
 
+        // Remove any existing click listeners
+        document.removeEventListener('click', startGame);
+        document.removeEventListener('touchstart', startGame);
+        
+        // Add new listeners
         document.addEventListener('click', startGame, { once: true });
         document.addEventListener('touchstart', startGame, { once: true });
     }
@@ -175,7 +195,7 @@ class FantaGame {
         if (!this.isGameOver) {
             this.rotation = (this.rotation + this.speed) % 360;
             this.canContainer.style.transform = `translate(-50%, -50%) rotate(${this.rotation}deg)`;
-            requestAnimationFrame(() => this.gameLoop());
+            this.animationFrameId = requestAnimationFrame(this.gameLoop);
         }
     }
 }
@@ -184,9 +204,9 @@ class FantaGame {
 let currentGame = null;
 
 // Function to restart the game
-function restartGame() {
+async function restartGame() {
     if (currentGame) {
-        currentGame.cleanup(); // Clean up old event listeners
+        currentGame.cleanup();
     }
     currentGame = new FantaGame();
 }
