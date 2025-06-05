@@ -90,7 +90,11 @@ class FantaGame {
         // Reset game state
         this.isGameOver = true;
         this.rotation = 0;
+        this.lives = 3;
+        this.sips = 0;
         this.canContainer.style.transform = 'translate(-50%, -50%) rotate(0deg)';
+        this.livesElement.textContent = 'Lives: 3';
+        this.updateSipsDisplay();
     }
 
     handleMotion(e) {
@@ -115,10 +119,20 @@ class FantaGame {
     }
 
     start() {
+        // Reset game state before starting
+        this.lives = 3;
+        this.sips = 0;
+        this.isGameOver = false;
+        this.rotation = 0;
+        
+        // Reset UI
+        this.livesElement.textContent = 'Lives: 3';
+        this.updateSipsDisplay();
+        this.canContainer.style.transform = 'translate(-50%, -50%) rotate(0deg)';
+        
         // Setup motion detection
         window.addEventListener('deviceorientation', this.handleMotion);
         // Start the game loop
-        this.isGameOver = false;
         this.gameLoop();
     }
 
