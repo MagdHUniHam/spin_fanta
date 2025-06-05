@@ -243,7 +243,7 @@ class FantaGame {
 
     showMessage(title, text, showReload = false, onRetry = null) {
         this.messageElement.style.display = 'block';
-        let buttonStyle = `
+        const buttonStyle = `
             style="
                 background-color: #FF4500;
                 border: none;
@@ -259,53 +259,38 @@ class FantaGame {
             onmouseover="this.style.transform='scale(1.05)'"
             onmouseout="this.style.transform='scale(1)'"
         `;
-        
+
         this.messageElement.innerHTML = `
             <h2 style="color: ${title.includes('Game Over') ? '#FF4500' : 'white'}; 
-                       font-size: ${title.includes('Game Over') ? '32px' : '24px'};
-                       margin-bottom: 20px;">${title}</h2>
-            <p style="font-size: 18px; line-height: 1.5;">${text}</p>
-            ${showReload ? `<button onclick="window.retryGame()" ${buttonStyle}>Try Again</button>` : ''}
+                       font-size: ${title.includes('Game Over') ? '32px' : '24px'};">
+                ${title}
+            </h2>
+            <p style="font-size: 16px;">${text}</p>
+            ${showReload ? `<button ${buttonStyle}>Retry</button>` : ''}
         `;
 
-        // Set up the retry function
-        window.retryGame = () => {
-            this.messageElement.style.display = 'none';
-            if (onRetry) {
+        if (showReload && typeof onRetry === 'function') {
+            const button = this.messageElement.querySelector('button');
+            button.addEventListener('click', () => {
                 onRetry();
-            }
-        };
+            });
+        }
     }
 
     gameOver(isWinner) {
         this.isGameOver = true;
+        const title = isWinner ? 'Game Over – You Win!' : 'Game Over';
+        const text = isWinner 
+            ? 'Awesome job! You hit all 5 targets! 🎉'
+            : 'Better luck next time! You ran out of lives.';
         
-        if (isWinner) {
-            this.showMessage(
-                '🎉 Congratulations! 🎉',
-                'You\'ve successfully hit the target 5 times!<br><br>Your code is: <strong>winner</strong>',
-                true,
-                () => {
-                    this.resetGame();
-                    this.setupGame();
-                }
-            );
-            if ('vibrate' in navigator) {
-                navigator.vibrate([100, 50, 100, 50, 200]);
-            }
-        } else {
-            this.showMessage(
-                'Game Over',
-                'You ran out of lives!<br>Remember to hit only when the beam aligns with the target!',
-                true,
-                () => {
-                    this.resetGame();
-                    this.setupGame();
-                }
-            );
-            if ('vibrate' in navigator) {
-                navigator.vibrate([500, 100, 500]);
-            }
+        this.showMessage(title, text, true, () => {
+            this.resetGame();
+            this.setupGame();
+        });
+
+        if ('vibrate' in navigator) {
+            navigator.vibrate(isWinner ? [100, 50, 100, 50, 200] : [500, 100, 500]);
         }
     }
 
@@ -313,8 +298,8 @@ class FantaGame {
         if (!this.isGameOver) {
             this.rotation = (this.rotation + this.speed) % 360;
             this.canContainer.style.transform = `translate(-50%, -50%) rotate(${this.rotation}deg)`;
+            requestAnimationFrame(() => this.gameLoop());
         }
-        requestAnimationFrame(() => this.gameLoop());
     }
 }
 
