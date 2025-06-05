@@ -1,6 +1,31 @@
 // Add a global variable to track if we have permission
 let hasMotionPermission = false;
 
+// Global game instance
+let currentGame = null;
+
+// Global start game function
+async function startGame() {
+    if (typeof DeviceOrientationEvent.requestPermission === 'function') {
+        try {
+            const permission = await DeviceOrientationEvent.requestPermission();
+            if (permission !== 'granted') {
+                alert('Please enable motion sensors to play the game.');
+                return;
+            }
+        } catch (error) {
+            console.error('Error requesting motion permission:', error);
+            alert('Error accessing motion sensors. Please try again.');
+            return;
+        }
+    }
+    
+    if (currentGame) {
+        currentGame.messageElement.style.display = 'none';
+        currentGame.start();
+    }
+}
+
 class FantaGame {
     constructor() {
         // Get DOM elements
@@ -14,9 +39,6 @@ class FantaGame {
         // Bind methods
         this.handleMotion = this.handleMotion.bind(this);
         this.gameLoop = this.gameLoop.bind(this);
-        
-        // Animation frame ID
-        this.animationFrameId = null;
         
         this.initializeGame();
     }
@@ -32,6 +54,7 @@ class FantaGame {
         this.lastBeta = null;
         this.recentBetas = [];
         this.isBlinking = false;
+        this.animationFrameId = null;
 
         // Reset UI elements
         this.canContainer.style.transform = 'translate(-50%, -50%) rotate(0deg)';
@@ -40,19 +63,34 @@ class FantaGame {
         this.updateSipsDisplay();
         
         this.showWelcomeMessage();
-        this.setupControls();
+    }
+
+    showWelcomeMessage() {
+        this.messageElement.innerHTML = `
+            <h2 style="color: white; font-size: 24px;">Ready to have a sip of Fanta?</h2>
+            <p style="font-size: 16px;">
+                Tilt your phone forward when the beam is in the blue zone to take a sip.<br>
+                I dare you take 5 sips to win.<br><br>
+                Tap anywhere to start.
+            </p>
+        `;
+        this.messageElement.style.display = 'block';
     }
 
     cleanup() {
         // Remove the motion event listener
         window.removeEventListener('deviceorientation', this.handleMotion);
+        
         // Cancel animation frame
         if (this.animationFrameId) {
             cancelAnimationFrame(this.animationFrameId);
             this.animationFrameId = null;
         }
-        // Stop any ongoing animations
+        
+        // Reset game state
         this.isGameOver = true;
+        this.rotation = 0;
+        this.canContainer.style.transform = 'translate(-50%, -50%) rotate(0deg)';
     }
 
     handleMotion(e) {
@@ -70,58 +108,17 @@ class FantaGame {
         }
     }
 
-    showWelcomeMessage() {
-        this.messageElement.innerHTML = `
-            <h2 style="color: white; font-size: 24px;">Ready to have a sip of Fanta?</h2>
-            <p style="font-size: 16px;">
-                Tilt your phone forward when the beam is in the blue zone to take a sip.<br>
-                I dare you take 5 sips to win.<br><br>
-                Tap anywhere to start.
-            </p>
-        `;
-        this.messageElement.style.display = 'block';
-    }
-
     updateSipsDisplay() {
         this.drops.forEach((drop, index) => {
             drop.classList.toggle('filled', index < this.sips);
         });
     }
 
-    setupControls() {
-        const startGame = async () => {
-            if (typeof DeviceOrientationEvent.requestPermission === 'function') {
-                try {
-                    const permission = await DeviceOrientationEvent.requestPermission();
-                    if (permission !== 'granted') {
-                        alert('Please enable motion sensors to play the game.');
-                        return;
-                    }
-                } catch (error) {
-                    console.error('Error requesting motion permission:', error);
-                    alert('Error accessing motion sensors. Please try again.');
-                    return;
-                }
-            }
-            
-            this.messageElement.style.display = 'none';
-            this.start();
-        };
-
-        // Remove any existing click listeners
-        document.removeEventListener('click', startGame);
-        document.removeEventListener('touchstart', startGame);
-        
-        // Add new listeners
-        document.addEventListener('click', startGame, { once: true });
-        document.addEventListener('touchstart', startGame, { once: true });
-    }
-
     start() {
         // Setup motion detection
         window.addEventListener('deviceorientation', this.handleMotion);
-
         // Start the game loop
+        this.isGameOver = false;
         this.gameLoop();
     }
 
@@ -169,7 +166,7 @@ class FantaGame {
     }
 
     endGame(isWinner) {
-        this.isGameOver = true;
+        this.cleanup();
         this.messageElement.innerHTML = `
             <h2 style="color: #FF4500; font-size: 32px;">
                 ${isWinner ? 'Congrats, you won!<br><span style="font-size: 24px;">code: winner</span>' : 'Game Over'}
@@ -200,19 +197,21 @@ class FantaGame {
     }
 }
 
-// Global game instance
-let currentGame = null;
-
-// Function to restart the game
-async function restartGame() {
+function restartGame() {
     if (currentGame) {
         currentGame.cleanup();
     }
     currentGame = new FantaGame();
+    // Set up the click/touch handlers for the new game
+    document.addEventListener('click', startGame, { once: true });
+    document.addEventListener('touchstart', startGame, { once: true });
 }
 
 // Start the game when the page loads
 window.addEventListener('load', () => {
     currentGame = new FantaGame();
+    // Set up initial click/touch handlers
+    document.addEventListener('click', startGame, { once: true });
+    document.addEventListener('touchstart', startGame, { once: true });
 });
  
