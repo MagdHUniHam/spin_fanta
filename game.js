@@ -11,6 +11,9 @@ class FantaGame {
         this.drops = Array.from(this.hitsElement.getElementsByClassName('drop'));
         this.messageElement = document.getElementById('message');
         
+        // Bind the motion handler to this instance
+        this.handleMotion = this.handleMotion.bind(this);
+        
         this.initializeGame();
     }
 
@@ -34,6 +37,28 @@ class FantaGame {
         
         this.showWelcomeMessage();
         this.setupControls();
+    }
+
+    cleanup() {
+        // Remove the motion event listener
+        window.removeEventListener('deviceorientation', this.handleMotion);
+        // Stop any ongoing animations
+        this.isGameOver = true;
+    }
+
+    handleMotion(e) {
+        if (!e.beta && e.beta !== 0) return;
+        
+        this.recentBetas.push(e.beta);
+        if (this.recentBetas.length > 3) this.recentBetas.shift();
+
+        const movement = this.recentBetas.length >= 2 ? 
+            this.recentBetas[this.recentBetas.length - 1] - this.recentBetas[0] : 0;
+
+        if (movement > 8 && Date.now() - this.lastTiltTime > 200) {
+            this.checkHit();
+            this.lastTiltTime = Date.now();
+        }
     }
 
     showWelcomeMessage() {
@@ -74,20 +99,7 @@ class FantaGame {
 
     start() {
         // Setup motion detection
-        window.addEventListener('deviceorientation', (e) => {
-            if (!e.beta && e.beta !== 0) return;
-            
-            this.recentBetas.push(e.beta);
-            if (this.recentBetas.length > 3) this.recentBetas.shift();
-
-            const movement = this.recentBetas.length >= 2 ? 
-                this.recentBetas[this.recentBetas.length - 1] - this.recentBetas[0] : 0;
-
-            if (movement > 8 && Date.now() - this.lastTiltTime > 200) {
-                this.checkHit();
-                this.lastTiltTime = Date.now();
-            }
-        });
+        window.addEventListener('deviceorientation', this.handleMotion);
 
         // Start the game loop
         this.gameLoop();
@@ -174,7 +186,7 @@ let currentGame = null;
 // Function to restart the game
 function restartGame() {
     if (currentGame) {
-        currentGame.isGameOver = true; // Ensure the old game loop stops
+        currentGame.cleanup(); // Clean up old event listeners
     }
     currentGame = new FantaGame();
 }
