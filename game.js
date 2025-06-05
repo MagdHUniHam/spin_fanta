@@ -1,144 +1,166 @@
-// Add a global variable to track if we have permission
-let hasMotionPermission = false;
-
-class FantaGame {
-    constructor() {
-        // Get DOM elements
-        this.canContainer = document.getElementById('canContainer');
-        this.beam = document.getElementById('beam');
-        this.livesElement = document.getElementById('lives');
-        this.hitsElement = document.getElementById('hits');
-        this.drops = Array.from(this.hitsElement.getElementsByClassName('drop'));
-        this.messageElement = document.getElementById('message');
-        
-        // Game state
-        this.rotation = 0;
-        this.speed = 7;
-        this.lives = 3;
-        this.sips = 0;
-        this.isGameOver = false;
-        this.lastTiltTime = 0;
-        this.lastBeta = null;
-        this.recentBetas = [];
-
-        this.showWelcomeMessage();
-        this.setupControls();
-    }
-
-    showWelcomeMessage() {
-        this.messageElement.innerHTML = `
-            <h2 style="color: white; font-size: 24px;">Welcome to Fanta Spin!</h2>
-            <p style="font-size: 16px;">Hold your phone in a comfortable position and tap anywhere to start.<br><br>
-            Tilt your phone forward when the beam hits the target!</p>
-        `;
-        this.messageElement.style.display = 'block';
-    }
-
-    updateSipsDisplay() {
-        this.drops.forEach((drop, index) => {
-            drop.classList.toggle('filled', index < this.sips);
-        });
-    }
-
-    setupControls() {
-        const startGame = async () => {
-            if (typeof DeviceOrientationEvent.requestPermission === 'function') {
-                const permission = await DeviceOrientationEvent.requestPermission();
-                if (permission !== 'granted') {
-                    alert('Please enable motion sensors to play the game.');
-                    return;
-                }
-            }
-            
-            this.messageElement.style.display = 'none';
-            this.start();
-        };
-
-        document.addEventListener('click', startGame, { once: true });
-        document.addEventListener('touchstart', startGame, { once: true });
-    }
-
-    start() {
-        // Setup motion detection
-        window.addEventListener('deviceorientation', (e) => {
-            if (!e.beta && e.beta !== 0) return;
-            
-            this.recentBetas.push(e.beta);
-            if (this.recentBetas.length > 3) this.recentBetas.shift();
-
-            const movement = this.recentBetas.length >= 2 ? 
-                this.recentBetas[this.recentBetas.length - 1] - this.recentBetas[0] : 0;
-
-            if (movement > 8 && Date.now() - this.lastTiltTime > 200) {
-                this.checkHit();
-                this.lastTiltTime = Date.now();
-            }
-        });
-
-        // Start the game loop
-        this.gameLoop();
-    }
-
-    checkHit() {
-        const normalizedRotation = ((this.rotation % 360) + 360) % 360;
-        const isInTargetZone = normalizedRotation >= 292.5 || normalizedRotation <= 67.5;
-
-        if (isInTargetZone) {
-            // Hit
-            this.sips++;
-            this.updateSipsDisplay();
-            this.beam.style.backgroundColor = '#00FF00';
-            if ('vibrate' in navigator) navigator.vibrate([100, 50, 100]);
-
-            if (this.sips >= 5) this.endGame(true);
-        } else {
-            // Miss
-            this.lives--;
-            this.livesElement.textContent = `Lives: ${this.lives}`;
-            this.beam.style.backgroundColor = '#FF0000';
-            if ('vibrate' in navigator) navigator.vibrate(500);
-
-            if (this.lives <= 0) this.endGame(false);
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>Fanta Spin</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            background: linear-gradient(135deg, #FF4500, #FF8C00);
+            height: 100vh;
+            overflow: hidden;
+            display: flex;
+            justify-content: center;
+            align-items: center;
         }
-
-        // Reset beam color
-        setTimeout(() => {
-            this.beam.style.background = 'linear-gradient(to top, rgba(255, 255, 255, 0.8), rgba(255, 255, 255, 0.2))';
-        }, 300);
-    }
-
-    endGame(isWinner) {
-        this.isGameOver = true;
-        this.messageElement.innerHTML = `
-            <h2 style="color: #FF4500; font-size: 32px;">
-                ${isWinner ? 'Congrats, you won! Code: winner' : 'Game Over'}
-            </h2>
-            ${!isWinner ? '<p style="font-size: 16px;">Better luck next time!</p>' : ''}
-            <button onclick="location.reload()" style="
-                background-color: #FF4500;
-                border: none;
-                color: white;
-                padding: 15px 30px;
-                border-radius: 25px;
-                font-size: 18px;
-                margin-top: 20px;
-                cursor: pointer;
-                box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);">
-                Play Again
-            </button>
-        `;
-        this.messageElement.style.display = 'block';
-    }
-
-    gameLoop() {
-        if (!this.isGameOver) {
-            this.rotation = (this.rotation + this.speed) % 360;
-            this.canContainer.style.transform = `translate(-50%, -50%) rotate(${this.rotation}deg)`;
-            requestAnimationFrame(() => this.gameLoop());
+        #message {
+            display: none;
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background-color: rgba(0, 0, 0, 0.8);
+            color: white;
+            padding: 15px;
+            border-radius: 10px;
+            text-align: center;
+            z-index: 1000;
+            width: 80%;
+            max-width: 300px;
         }
-    }
-}
-
-// Start the game when the page loads
-window.addEventListener('load', () => new FantaGame());
- 
+        #message h2 {
+            font-size: 20px !important;
+            margin: 0 0 10px 0;
+        }
+        #message p {
+            font-size: 14px !important;
+            margin: 0 0 15px 0;
+        }
+        #message button {
+            font-size: 16px !important;
+            padding: 10px 20px !important;
+        }
+        #canContainer {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 200px;
+            height: 360px;
+        }
+        #can {
+            width: 100%;
+            height: 100%;
+            object-fit: contain;
+        }
+        #beam {
+            position: absolute;
+            top: -180px;
+            left: 50%;
+            width: 6px;
+            height: 180px;
+            background: linear-gradient(to top, rgba(255, 255, 255, 0.8), rgba(255, 255, 255, 0.2));
+            transform: translateX(-50%);
+            filter: drop-shadow(0 0 5px rgba(255, 255, 255, 0.5));
+        }
+        #targetZone {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            width: 400px;
+            height: 400px;
+            transform: translate(-50%, -50%);
+            pointer-events: none;
+        }
+        /* Full white circle */
+        #targetZone::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            border: 2px solid rgba(255, 255, 255, 0.8);
+            border-radius: 50%;
+        }
+        /* Blue hit zone at top */
+        #targetZone::after {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            border: 8px solid transparent;
+            border-top: 8px solid #007bff;
+            border-radius: 50%;
+            transform: rotate(0deg);
+            clip-path: polygon(-50% -50%, 150% -50%, 150% 50%, -50% 50%);
+        }
+        #lives, #hits {
+            position: fixed;
+            top: 15px;
+            font-size: 18px;
+            color: white;
+            font-family: Arial, sans-serif;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5);
+            z-index: 100;
+        }
+        #lives {
+            left: 15px;
+        }
+        #hits {
+            position: fixed;
+            top: 15px;
+            left: 50%;
+            transform: translateX(-50%);
+            background-color: rgba(0, 123, 255, 0.2);
+            padding: 10px 15px;
+            border-radius: 20px;
+            display: flex;
+            gap: 8px;
+            align-items: center;
+        }
+        .drop {
+            width: 20px;
+            height: 20px;
+            background-color: #cccccc;
+            clip-path: path('M8 1.5c2.7 2.3 4.5 5 4.5 7.5a4.5 4.5 0 1 1-9 0C3.5 6.5 5.3 3.8 8 1.5z');
+            transition: background-color 0.3s ease;
+            margin-left: 5px;
+        }
+        .drop.filled {
+            background-color: #FF4500;
+        }
+        #logo {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            width: 160px;
+            height: auto;
+            z-index: 100;
+        }
+    </style>
+</head>
+<body>
+    <div id="targetZone"></div>
+    <div id="canContainer">
+        <div id="beam"></div>
+        <img id="can" src="fanta.png" alt="Fanta Can">
+    </div>
+    <div id="lives">Lives: 3</div>
+    <div id="hits">
+        Sips
+        <div class="drop"></div>
+        <div class="drop"></div>
+        <div class="drop"></div>
+        <div class="drop"></div>
+        <div class="drop"></div>
+    </div>
+    <div id="message"></div>
+    <img id="logo" src="logo.png" alt="Logo">
+    <script src="game.js"></script>
+</body>
+</html> 
