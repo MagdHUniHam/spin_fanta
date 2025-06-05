@@ -8,13 +8,14 @@ class FantaGame {
         this.beam = document.getElementById('beam');
         this.livesElement = document.getElementById('lives');
         this.hitsElement = document.getElementById('hits');
+        this.drops = Array.from(this.hitsElement.getElementsByClassName('drop'));
         this.messageElement = document.getElementById('message');
         
         // Game state
         this.rotation = 0;
-        this.speed = 5.4;
+        this.speed = 7;
         this.lives = 3;
-        this.hits = 0;
+        this.sips = 0;
         this.isGameOver = false;
         this.lastTiltTime = 0;
         this.lastBeta = null;
@@ -31,6 +32,12 @@ class FantaGame {
             Tilt your phone forward when the beam hits the target!</p>
         `;
         this.messageElement.style.display = 'block';
+    }
+
+    updateSipsDisplay() {
+        this.drops.forEach((drop, index) => {
+            drop.classList.toggle('filled', index < this.sips);
+        });
     }
 
     setupControls() {
@@ -78,12 +85,12 @@ class FantaGame {
 
         if (isInTargetZone) {
             // Hit
-            this.hits++;
-            this.hitsElement.textContent = `Hits: ${this.hits}`;
+            this.sips++;
+            this.updateSipsDisplay();
             this.beam.style.backgroundColor = '#00FF00';
             if ('vibrate' in navigator) navigator.vibrate([100, 50, 100]);
 
-            if (this.hits >= 5) this.endGame(true);
+            if (this.sips >= 5) this.endGame(true);
         } else {
             // Miss
             this.lives--;
@@ -104,11 +111,9 @@ class FantaGame {
         this.isGameOver = true;
         this.messageElement.innerHTML = `
             <h2 style="color: #FF4500; font-size: 32px;">
-                ${isWinner ? 'You Win! 🎉' : 'Game Over'}
+                ${isWinner ? 'Congrats, you won! Code: winner' : 'Game Over'}
             </h2>
-            <p style="font-size: 16px;">
-                ${isWinner ? 'Awesome job! You hit all 5 targets!' : 'Better luck next time!'}
-            </p>
+            ${!isWinner ? '<p style="font-size: 16px;">Better luck next time!</p>' : ''}
             <button onclick="location.reload()" style="
                 background-color: #FF4500;
                 border: none;
