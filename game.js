@@ -13,7 +13,7 @@ class FantaGame {
         
         // Game state
         this.rotation = 0;
-        this.speed = 7;
+        this.speed = 5.6;
         this.lives = 3;
         this.sips = 0;
         this.isGameOver = false;
@@ -104,8 +104,8 @@ class FantaGame {
 
     checkHit() {
         const normalizedRotation = ((this.rotation % 360) + 360) % 360;
-        // Changed to 37.5 degrees on each side (75 degrees total)
-        const isInTargetZone = normalizedRotation >= 322.5 || normalizedRotation <= 37.5;
+        // 30 degrees on each side of top center (60 degrees total)
+        const isInTargetZone = normalizedRotation >= 330 || normalizedRotation <= 30;
 
         if (isInTargetZone) {
             // Hit
