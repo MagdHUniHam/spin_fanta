@@ -11,7 +11,11 @@ class FantaGame {
         this.drops = Array.from(this.hitsElement.getElementsByClassName('drop'));
         this.messageElement = document.getElementById('message');
         
-        // Game state
+        this.initializeGame();
+    }
+
+    initializeGame() {
+        // Reset game state
         this.rotation = 0;
         this.speed = 5.5;
         this.lives = 3;
@@ -22,6 +26,12 @@ class FantaGame {
         this.recentBetas = [];
         this.isBlinking = false;
 
+        // Reset UI elements
+        this.canContainer.style.transform = 'translate(-50%, -50%) rotate(0deg)';
+        this.beam.style.background = 'linear-gradient(to top, rgba(255, 255, 255, 0.8), rgba(255, 255, 255, 0.2))';
+        this.livesElement.textContent = 'Lives: 3';
+        this.updateSipsDisplay();
+        
         this.showWelcomeMessage();
         this.setupControls();
     }
@@ -133,7 +143,7 @@ class FantaGame {
                 ${isWinner ? 'Congrats, you won!<br><span style="font-size: 24px;">code: winner</span>' : 'Game Over'}
             </h2>
             ${!isWinner ? '<p style="font-size: 16px;">Better luck next time!</p>' : ''}
-            <button onclick="new FantaGame()" style="
+            <button onclick="restartGame()" style="
                 background-color: #FF4500;
                 border: none;
                 color: white;
@@ -158,6 +168,19 @@ class FantaGame {
     }
 }
 
+// Global game instance
+let currentGame = null;
+
+// Function to restart the game
+function restartGame() {
+    if (currentGame) {
+        currentGame.isGameOver = true; // Ensure the old game loop stops
+    }
+    currentGame = new FantaGame();
+}
+
 // Start the game when the page loads
-window.addEventListener('load', () => new FantaGame());
+window.addEventListener('load', () => {
+    currentGame = new FantaGame();
+});
  
