@@ -46,7 +46,7 @@ class FantaGame {
     initializeGame() {
         // Reset game state
         this.rotation = 0;
-        this.speed = 5.5;
+        this.speed = 2.75;
         this.lives = 3;
         this.sips = 0;
         this.isGameOver = false;
@@ -92,7 +92,7 @@ class FantaGame {
         this.rotation = 0;
         this.lives = 3;
         this.sips = 0;
-        this.speed = 5.5; // Ensure speed is reset
+        this.speed = 2.75; // Ensure speed is reset
         this.canContainer.style.transform = 'translate(-50%, -50%) rotate(0deg)';
         this.livesElement.textContent = 'Lives: 3';
         this.updateSipsDisplay();
@@ -131,7 +131,7 @@ class FantaGame {
         this.sips = 0;
         this.isGameOver = false;
         this.rotation = 0;
-        this.speed = 5.5; // Ensure speed is reset
+        this.speed = 2.75;
         
         // Reset UI
         this.livesElement.textContent = 'Lives: 3';
