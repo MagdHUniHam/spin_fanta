@@ -92,6 +92,7 @@ class FantaGame {
         this.rotation = 0;
         this.lives = 3;
         this.sips = 0;
+        this.speed = 5.5; // Ensure speed is reset
         this.canContainer.style.transform = 'translate(-50%, -50%) rotate(0deg)';
         this.livesElement.textContent = 'Lives: 3';
         this.updateSipsDisplay();
@@ -119,19 +120,28 @@ class FantaGame {
     }
 
     start() {
+        // Ensure any existing game loop is stopped
+        if (this.animationFrameId) {
+            cancelAnimationFrame(this.animationFrameId);
+            this.animationFrameId = null;
+        }
+
         // Reset game state before starting
         this.lives = 3;
         this.sips = 0;
         this.isGameOver = false;
         this.rotation = 0;
+        this.speed = 5.5; // Ensure speed is reset
         
         // Reset UI
         this.livesElement.textContent = 'Lives: 3';
         this.updateSipsDisplay();
         this.canContainer.style.transform = 'translate(-50%, -50%) rotate(0deg)';
         
-        // Setup motion detection
+        // Remove any existing motion listener before adding a new one
+        window.removeEventListener('deviceorientation', this.handleMotion);
         window.addEventListener('deviceorientation', this.handleMotion);
+        
         // Start the game loop
         this.gameLoop();
     }
@@ -203,10 +213,16 @@ class FantaGame {
     }
 
     gameLoop() {
+        // Only proceed if we don't have another loop running
+        if (this.animationFrameId) {
+            cancelAnimationFrame(this.animationFrameId);
+            this.animationFrameId = null;
+        }
+
         if (!this.isGameOver) {
             this.rotation = (this.rotation + this.speed) % 360;
             this.canContainer.style.transform = `translate(-50%, -50%) rotate(${this.rotation}deg)`;
-            this.animationFrameId = requestAnimationFrame(this.gameLoop);
+            this.animationFrameId = requestAnimationFrame(() => this.gameLoop());
         }
     }
 }
