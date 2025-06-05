@@ -11,12 +11,19 @@
             padding: 0;
         }
         
+        html {
+            background: linear-gradient(135deg, #FF4500, #FF8C00);
+            height: 100%;
+        }
+        
         body {
             margin: 0;
             padding: env(safe-area-inset-top, 0px) env(safe-area-inset-right, 0px) env(safe-area-inset-bottom, 0px) env(safe-area-inset-left, 0px);
             background: linear-gradient(135deg, #FF4500, #FF8C00);
+            background-attachment: fixed;
             min-height: 100vh;
             min-height: -webkit-fill-available;
+            height: 100%;
             overflow: hidden;
             display: flex;
             justify-content: center;
@@ -36,6 +43,7 @@
             align-items: center;
             overflow: hidden;
             z-index: 1;
+            background: linear-gradient(135deg, #FF4500, #FF8C00);
         }
 
         #canContainer {
