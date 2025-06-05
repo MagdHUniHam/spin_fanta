@@ -13,7 +13,7 @@ class FantaGame {
         
         // Game state
         this.rotation = 0;
-        this.speed = 5.6;
+        this.speed = 5.5;
         this.lives = 3;
         this.sips = 0;
         this.isGameOver = false;
