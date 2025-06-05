@@ -133,7 +133,7 @@ class FantaGame {
                 ${isWinner ? 'Congrats, you won!<br><span style="font-size: 24px;">code: winner</span>' : 'Game Over'}
             </h2>
             ${!isWinner ? '<p style="font-size: 16px;">Better luck next time!</p>' : ''}
-            <button onclick="location.reload()" style="
+            <button onclick="new FantaGame()" style="
                 background-color: #FF4500;
                 border: none;
                 color: white;
