@@ -47,8 +47,9 @@ class FantaGame {
         this.lastBeta = null;
         this.recentBetas = [];
 
-        this.livesElement.textContent = this.lives;
-        this.hitsElement.textContent = this.hits;
+        this.livesElement.textContent = `Lives: ${this.lives}`;
+        this.hitsElement.textContent = `Hits: ${this.hits}`;
+        this.canContainer.style.transform = 'translate(-50%, -50%) rotate(0deg)';
     }
 
     setupGame() {
@@ -186,7 +187,7 @@ class FantaGame {
 
         if (isInTargetZone && isTiltStart) {
             this.hits++;
-            this.hitsElement.textContent = this.hits;
+            this.hitsElement.textContent = `Hits: ${this.hits}`;
             
             this.beam.style.backgroundColor = '#00FF00';
             setTimeout(() => {
@@ -206,7 +207,7 @@ class FantaGame {
             this.lastLifeLossTime = now;
             
             this.lives--;
-            this.livesElement.textContent = this.lives;
+            this.livesElement.textContent = `Lives: ${this.lives}`;
             
             this.beam.style.backgroundColor = '#FF0000';
             setTimeout(() => {
