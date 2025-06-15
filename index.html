@@ -190,11 +190,23 @@
         .drop.filled {
             background-color: #007bff;
         }
+        .tilt-text {
+            position: fixed;
+            top: calc(50% - 220px);
+            left: 50%;
+            transform: translateX(-50%);
+            color: #007bff;
+            font-size: 24px;
+            font-weight: bold;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.3);
+            z-index: 5;
+        }
     </style>
 </head>
 <body>
     <div id="gameContainer">
         <div id="targetZone"></div>
+        <div class="tilt-text">Tilt to drink</div>
         <div id="canContainer">
             <div id="beam"></div>
             <img id="can" src="fanta.png" alt="Fanta Can">
