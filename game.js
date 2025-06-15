@@ -6,23 +6,23 @@ let currentGame = null;
 
 // Global start game function
 async function startGame() {
-    if (typeof DeviceOrientationEvent.requestPermission === 'function') {
-        try {
+    try {
+        // First check if we need permission
+        if (typeof DeviceOrientationEvent.requestPermission === 'function') {
             const permission = await DeviceOrientationEvent.requestPermission();
             if (permission !== 'granted') {
                 alert('Please enable motion sensors to play the game.');
                 return;
             }
-        } catch (error) {
-            console.error('Error requesting motion permission:', error);
-            alert('Error accessing motion sensors. Please try again.');
-            return;
         }
-    }
-    
-    if (currentGame) {
-        currentGame.messageElement.style.display = 'none';
-        currentGame.start();
+        
+        if (currentGame) {
+            currentGame.messageElement.style.display = 'none';
+            currentGame.start();
+        }
+    } catch (error) {
+        console.error('Error requesting motion permission:', error);
+        alert('Error accessing motion sensors. Please try again.');
     }
 }
 
@@ -46,7 +46,7 @@ class FantaGame {
     initializeGame() {
         // Reset game state
         this.rotation = 0;
-        this.speed = 5;
+        this.speed = 4;
         this.lives = 3;
         this.sips = 0;
         this.isGameOver = false;
@@ -92,7 +92,7 @@ class FantaGame {
         this.rotation = 0;
         this.lives = 3;
         this.sips = 0;
-        this.speed = 5; // Ensure speed is reset
+        this.speed = 4; // Ensure speed is reset
         this.canContainer.style.transform = 'translate(-50%, -50%) rotate(0deg)';
         this.livesElement.textContent = 'Lives: 3';
         this.updateSipsDisplay();
@@ -131,7 +131,7 @@ class FantaGame {
         this.sips = 0;
         this.isGameOver = false;
         this.rotation = 0;
-        this.speed = 5;
+        this.speed = 4;
         
         // Reset UI
         this.livesElement.textContent = 'Lives: 3';
