@@ -6,23 +6,26 @@ let currentGame = null;
 
 // Global start game function
 async function startGame() {
-    try {
-        // First check if we need permission
-        if (typeof DeviceOrientationEvent.requestPermission === 'function') {
+    // First check if we need permission
+    if (typeof DeviceOrientationEvent.requestPermission === 'function') {
+        try {
             const permission = await DeviceOrientationEvent.requestPermission();
             if (permission !== 'granted') {
                 alert('Please enable motion sensors to play the game.');
                 return;
             }
+        } catch (error) {
+            // Only show error if permission was actually denied
+            if (error.message.includes('denied')) {
+                alert('Please enable motion sensors to play the game.');
+            }
+            return;
         }
-        
-        if (currentGame) {
-            currentGame.messageElement.style.display = 'none';
-            currentGame.start();
-        }
-    } catch (error) {
-        console.error('Error requesting motion permission:', error);
-        alert('Error accessing motion sensors. Please try again.');
+    }
+    
+    if (currentGame) {
+        currentGame.messageElement.style.display = 'none';
+        currentGame.start();
     }
 }
 
@@ -244,3 +247,4 @@ window.addEventListener('load', () => {
     document.addEventListener('click', startGame, { once: true });
     document.addEventListener('touchstart', startGame, { once: true });
 });
+ 
