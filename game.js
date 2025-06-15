@@ -244,4 +244,3 @@ window.addEventListener('load', () => {
     document.addEventListener('click', startGame, { once: true });
     document.addEventListener('touchstart', startGame, { once: true });
 });
- 
