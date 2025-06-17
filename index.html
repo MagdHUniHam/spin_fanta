@@ -87,28 +87,13 @@
             z-index: 5;
         }
 
-        #hits {
+        #points {
             position: fixed;
             top: max(15px, env(safe-area-inset-top, 15px));
             right: max(15px, env(safe-area-inset-right, 15px));
-            background-color: rgba(0, 123, 255, 0.2);
-            padding: 10px 15px;
-            border-radius: 20px;
-            display: flex;
-            gap: 8px;
-            align-items: center;
             font-size: 18px;
             color: white;
             text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5);
-            z-index: 5;
-        }
-
-        #logo {
-            position: fixed;
-            bottom: max(20px, env(safe-area-inset-bottom, 20px));
-            right: max(20px, env(safe-area-inset-right, 20px));
-            width: 180px;
-            height: auto;
             z-index: 5;
         }
 
@@ -213,14 +198,7 @@
         </div>
     </div>
     <div id="lives">Lives: 3</div>
-    <div id="hits">
-        Sips
-        <div class="drop"></div>
-        <div class="drop"></div>
-        <div class="drop"></div>
-        <div class="drop"></div>
-        <div class="drop"></div>
-    </div>
+    <div id="points">Points: 0</div>
     <div id="message"></div>
     <img id="logo" src="logo.png" alt="Logo">
     <script src="game.js"></script>
