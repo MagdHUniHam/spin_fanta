@@ -97,6 +97,15 @@
             z-index: 5;
         }
 
+        #logo {
+            position: fixed;
+            bottom: max(20px, env(safe-area-inset-bottom, 20px));
+            right: max(20px, env(safe-area-inset-right, 20px));
+            width: 180px;
+            height: auto;
+            z-index: 5;
+        }
+
         #message {
             display: none;
             position: fixed;
@@ -191,7 +200,7 @@
 <body>
     <div id="gameContainer">
         <div id="targetZone"></div>
-        <div class="tilt-text">Tilt to drink</div>
+        <div class="tilt-text">Tilt to drink Fanta</div>
         <div id="canContainer">
             <div id="beam"></div>
             <img id="can" src="fanta.png" alt="Fanta Can">
