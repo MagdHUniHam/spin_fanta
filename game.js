@@ -35,8 +35,7 @@ class FantaGame {
         this.canContainer = document.getElementById('canContainer');
         this.beam = document.getElementById('beam');
         this.livesElement = document.getElementById('lives');
-        this.hitsElement = document.getElementById('hits');
-        this.drops = Array.from(this.hitsElement.getElementsByClassName('drop'));
+        this.pointsElement = document.getElementById('points');
         this.messageElement = document.getElementById('message');
         
         // Bind methods
@@ -49,9 +48,9 @@ class FantaGame {
     initializeGame() {
         // Reset game state
         this.rotation = 0;
-        this.speed = 4;
+        this.speed = 4; // Base speed
         this.lives = 3;
-        this.sips = 0;
+        this.points = 0;
         this.isGameOver = false;
         this.lastTiltTime = 0;
         this.lastBeta = null;
@@ -63,7 +62,7 @@ class FantaGame {
         this.canContainer.style.transform = 'translate(-50%, -50%) rotate(0deg)';
         this.beam.style.background = 'linear-gradient(to top, rgba(255, 255, 255, 0.8), rgba(255, 255, 255, 0.2))';
         this.livesElement.textContent = 'Lives: 3';
-        this.updateSipsDisplay();
+        this.pointsElement.textContent = 'Points: 0';
         
         this.showWelcomeMessage();
     }
@@ -93,12 +92,8 @@ class FantaGame {
         // Reset game state
         this.isGameOver = true;
         this.rotation = 0;
-        this.lives = 3;
-        this.sips = 0;
-        this.speed = 4; // Ensure speed is reset
+        this.speed = 4; // Reset to base speed
         this.canContainer.style.transform = 'translate(-50%, -50%) rotate(0deg)';
-        this.livesElement.textContent = 'Lives: 3';
-        this.updateSipsDisplay();
     }
 
     handleMotion(e) {
@@ -131,14 +126,14 @@ class FantaGame {
 
         // Reset game state before starting
         this.lives = 3;
-        this.sips = 0;
+        this.points = 0;
         this.isGameOver = false;
         this.rotation = 0;
-        this.speed = 4;
+        this.speed = 4; // Reset to base speed
         
         // Reset UI
         this.livesElement.textContent = 'Lives: 3';
-        this.updateSipsDisplay();
+        this.pointsElement.textContent = 'Points: 0';
         this.canContainer.style.transform = 'translate(-50%, -50%) rotate(0deg)';
         
         // Remove any existing motion listener before adding a new one
@@ -175,12 +170,15 @@ class FantaGame {
 
         if (isInTargetZone) {
             // Hit
-            this.sips++;
-            this.updateSipsDisplay();
+            this.points++;
+            this.pointsElement.textContent = `Points: ${this.points}`;
             this.blinkBeam('linear-gradient(to top, #00FF00, rgba(0, 255, 0, 0.2))');
             if ('vibrate' in navigator) navigator.vibrate([100, 50, 100]);
 
-            if (this.sips >= 5) this.endGame(true);
+            // Increase speed every 5 points
+            if (this.points % 5 === 0) {
+                this.speed += 0.7;
+            }
         } else {
             // Miss
             this.lives--;
@@ -188,17 +186,29 @@ class FantaGame {
             this.blinkBeam('linear-gradient(to top, #FF0000, rgba(255, 0, 0, 0.2))');
             if ('vibrate' in navigator) navigator.vibrate(500);
 
-            if (this.lives <= 0) this.endGame(false);
+            if (this.lives <= 0) {
+                this.endGame();
+            }
         }
     }
 
-    endGame(isWinner) {
+    endGame() {
         this.cleanup();
+        let message;
+        if (this.points > 7) {
+            message = `
+                <h2 style="color: #FF4500; font-size: 32px;">Good job!</h2>
+                <p style="font-size: 24px;">code: winner</p>
+                <p style="font-size: 16px;">If you're still thirsty, play again!</p>
+            `;
+        } else {
+            message = `
+                <h2 style="color: #FF4500; font-size: 32px;">You still look thirsty, have another try!</h2>
+            `;
+        }
+
         this.messageElement.innerHTML = `
-            <h2 style="color: #FF4500; font-size: 32px;">
-                ${isWinner ? 'Congrats, you won!<br><span style="font-size: 24px;">code: winner</span>' : 'Game Over'}
-            </h2>
-            ${!isWinner ? '<p style="font-size: 16px;">Better luck next time!</p>' : ''}
+            ${message}
             <button onclick="restartGame()" style="
                 background-color: #FF4500;
                 border: none;
