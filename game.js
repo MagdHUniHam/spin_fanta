@@ -72,7 +72,6 @@ class FantaGame {
             <h2 style="color: white; font-size: 24px;">Ready to have a sip of Fanta?</h2>
             <p style="font-size: 16px;">
                 Tilt your phone towards you when the beam is in the blue zone as if taking a sip.<br>
-                I dare you take 5 sips to win.<br><br>
                 Tap anywhere to start.
             </p>
         `;
